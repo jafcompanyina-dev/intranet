@@ -1,0 +1,1993 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아웃소싱 HR 통합 관리 시스템</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+            background: #f4f6f9; color: #333; min-height: 100vh; padding: 20px;
+        }
+        .container {
+            max-width: 1450px; margin: 0 auto; background: #fff;
+            border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;
+        }
+        .header {
+            background: #fff; border-bottom: 2px solid #f0f0f0; padding: 22px 25px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+        }
+        .header h1 { font-size: 22px; margin-bottom: 5px; }
+        .header p { font-size: 13px; color: #666; }
+        .header-right { display: flex; gap: 8px; }
+        .header-right button {
+            padding: 8px 14px; border: 1px solid #ddd; background: white;
+            border-radius: 6px; cursor: pointer; font-size: 13px;
+        }
+        .header-right button:hover { background: #f5f5f5; }
+        .main-content { display: flex; min-height: calc(100vh - 160px); }
+        .sidebar {
+            width: 205px; background: #fafafa; border-right: 1px solid #e0e0e0;
+            padding: 14px; overflow-y: auto; flex-shrink: 0;
+        }
+        .nav-item {
+            padding: 12px 13px; margin: 5px 0; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 500; border-left: 3px solid transparent;
+        }
+        .nav-item:hover { background: #efefef; }
+        .nav-item.active { background: #e8f0ff; border-left-color: #4a90e2; color: #4a90e2; }
+        .content { flex: 1; padding: 22px; overflow-y: auto; min-width: 0; }
+        .section { display: none; }
+        .section.active { display: block; }
+        h2 { font-size: 19px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+        h3 { font-size: 15px; color: #444; margin: 18px 0 12px 0; font-weight: 600; }
+        .dashboard-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 13px; margin-bottom: 20px;
+        }
+        .card {
+            background: linear-gradient(135deg, #f7f8fa 0%, #eef0f3 100%);
+            border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px;
+        }
+        .card-title { font-size: 12px; color: #666; margin-bottom: 6px; }
+        .card-value { font-size: 25px; font-weight: bold; }
+        .form-group { margin-bottom: 13px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 9px; border: 1px solid #ddd; border-radius: 6px;
+            font-size: 13px; font-family: inherit; background: white;
+        }
+        .form-group textarea { resize: vertical; min-height: 55px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .form-section {
+            background: #f9f9f9; padding: 15px; border-radius: 8px;
+            border: 1px solid #e8e8e8; margin-bottom: 16px;
+        }
+        .btn {
+            padding: 9px 15px; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 600; margin-right: 6px; margin-bottom: 6px;
+        }
+        .btn-primary { background: #4a90e2; color: white; }
+        .btn-primary:hover { background: #357abd; }
+        .btn-secondary { background: #f0f0f0; color: #333; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #e5e5e5; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #229954; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-warning:hover { background: #d68910; }
+        .btn-small { padding: 5px 9px; font-size: 12px; }
+        .search-bar {
+            display: flex; gap: 10px; margin-bottom: 14px; background: #f9f9f9;
+            padding: 13px; border-radius: 8px; border: 1px solid #e8e8e8;
+            align-items: center; flex-wrap: wrap;
+        }
+        .search-bar input, .search-bar select {
+            padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; min-width: 130px;
+        }
+        .table-container { overflow-x: auto; margin-top: 12px; }
+        table {
+            width: 100%; border-collapse: collapse; font-size: 12.5px;
+            background: white; border: 1px solid #e0e0e0;
+        }
+        th {
+            background: #f5f5f5; padding: 10px 8px; text-align: left;
+            font-weight: 600; border-bottom: 2px solid #ddd; white-space: nowrap;
+        }
+        td { padding: 8px; border-bottom: 1px solid #e8e8e8; vertical-align: middle; }
+        tr:hover { background: #f9f9f9; }
+        .status-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 600; white-space: nowrap;
+        }
+        .status-applicant { background: #fff4e6; color: #d97706; }
+        .status-pending { background: #dbeafe; color: #0284c7; }
+        .status-rejected { background: #fee2e2; color: #dc2626; }
+        .status-active { background: #dcfce7; color: #15803d; }
+        .status-resigned { background: #f3f4f6; color: #6b7280; }
+        .shift-day { background: #fef9c3; color: #a16207; }
+        .shift-night { background: #e0e7ff; color: #4338ca; }
+        .shift-special { background: #fce7f3; color: #be185d; }
+        .shift-rest { background: #dcfce7; color: #15803d; }
+        .ins-four { background: #dbeafe; color: #1d4ed8; }
+        .ins-freelance { background: #fef3c7; color: #b45309; }
+        .info-box {
+            background: #eff6ff; border-left: 3px solid #4a90e2; padding: 11px;
+            border-radius: 6px; margin-bottom: 14px; font-size: 13px;
+        }
+        .edit-modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.4);
+        }
+        .edit-modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-content {
+            background: white; padding: 24px; border-radius: 8px; width: 92%;
+            max-width: 540px; max-height: 88vh; overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .modal-header { font-size: 17px; font-weight: bold; margin-bottom: 15px; }
+        .close-modal {
+            float: right; font-size: 24px; cursor: pointer; color: #999;
+            border: none; background: none; line-height: 1;
+        }
+        .close-modal:hover { color: #333; }
+        .settings-section {
+            background: #f9f9f9; padding: 15px; border-radius: 8px;
+            border: 1px solid #e8e8e8; margin-bottom: 13px;
+        }
+        .settings-title { font-weight: 600; margin-bottom: 11px; font-size: 14px; }
+        .memo-box {
+            background: #fffbea; border-left: 3px solid #f59e0b; padding: 8px;
+            border-radius: 4px; font-size: 12px; max-height: 66px; max-width: 190px;
+            overflow-y: auto; word-wrap: break-word;
+        }
+        .work-time-box {
+            background: #e8f5e9; border-left: 3px solid #27ae60; padding: 11px;
+            border-radius: 6px; margin-bottom: 13px; font-size: 12px;
+        }
+        .platform-tag {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca;
+            padding: 5px 10px; border-radius: 14px; font-size: 12px; margin: 0 6px 6px 0;
+        }
+        .platform-tag button {
+            border: none; background: none; color: #4338ca; cursor: pointer;
+            font-weight: bold; font-size: 13px; padding: 0;
+        }
+        #toast-area {
+            position: fixed; top: 18px; right: 18px; z-index: 3000;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .toast {
+            padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            color: white; box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            animation: slideIn 0.25s ease;
+        }
+        .toast.success { background: #27ae60; }
+        .toast.error { background: #e74c3c; }
+        .toast.info { background: #4a90e2; }
+        @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+        #confirm-modal .modal-content { max-width: 400px; text-align: center; }
+        #confirm-message { font-size: 14px; margin-bottom: 18px; line-height: 1.5; }
+        .allowance-row {
+            display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px;
+            align-items: center; margin-bottom: 6px;
+        }
+        .sensitive { font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div id="toast-area"></div>
+
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1 id="main-title">🚀 아웃소싱 HR 통합 관리 시스템</h1>
+                <p id="main-subtitle">지원자 • 채용 • 출퇴근 • 급여 - 모든 업무 한곳에서 관리</p>
+            </div>
+            <div class="header-right">
+                <button onclick="downloadDataBackup()">💾 데이터 백업</button>
+                <button onclick="switchTabByName('settings')">⚙️ 설정</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="nav-item active" data-tab="dashboard" onclick="switchTab(this)">📊 대시보드</div>
+                <div class="nav-item" data-tab="applicants" onclick="switchTab(this)">👥 지원자 관리</div>
+                <div class="nav-item" data-tab="employees" onclick="switchTab(this)">👔 근로자 관리</div>
+                <div class="nav-item" data-tab="companies" onclick="switchTab(this)">🏢 업체 관리</div>
+                <div class="nav-item" data-tab="attendance" onclick="switchTab(this)">⏱️ 출퇴근 관리</div>
+                <div class="nav-item" data-tab="payroll" onclick="switchTab(this)">💰 급여 관리</div>
+                <div class="nav-item" data-tab="settings" onclick="switchTab(this)">⚙️ 설정</div>
+            </div>
+
+            <div class="content">
+                <!-- ===================== 대시보드 ===================== -->
+                <div id="dashboard" class="section active">
+                    <h2>📊 대시보드</h2>
+                    <div class="dashboard-grid">
+                        <div class="card"><div class="card-title">지원 중</div><div class="card-value" id="stat-applicant">0</div></div>
+                        <div class="card"><div class="card-title">입사 예정</div><div class="card-value" id="stat-pending">0</div></div>
+                        <div class="card"><div class="card-title">재직 근로자</div><div class="card-value" id="stat-employees">0</div></div>
+                        <div class="card"><div class="card-title">퇴사자</div><div class="card-value" id="stat-resigned">0</div></div>
+                        <div class="card"><div class="card-title">등록 업체</div><div class="card-value" id="stat-companies">0</div></div>
+                        <div class="card"><div class="card-title">이번달 예상 급여 (실지급)</div><div class="card-value" id="stat-payroll" style="font-size:19px;">0원</div></div>
+                    </div>
+                    <h3>👥 업체별 현황</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>업체명</th><th>근무형태</th><th>급여일</th><th>재직 인원</th><th>월 예상 급여(실지급)</th></tr></thead>
+                            <tbody id="company-stats-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== 지원자 관리 ===================== -->
+                <div id="applicants" class="section">
+                    <h2>👥 지원자 관리</h2>
+                    <div class="form-section">
+                        <h3 style="margin-top:0;">지원자 추가</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>이름 *</label><input type="text" id="applicant-name"></div>
+                            <div class="form-group"><label>연락처 *</label><input type="text" id="applicant-phone"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>지원 업체</label><select id="applicant-company"><option value="">업체 선택</option></select></div>
+                            <div class="form-group"><label>지역</label><input type="text" id="applicant-region"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>자차 유무</label>
+                                <select id="applicant-car"><option value="">선택</option><option value="yes">보유</option><option value="no">미보유</option></select>
+                            </div>
+                            <div class="form-group"><label>지원 플랫폼</label><select id="applicant-platform"></select></div>
+                        </div>
+                        <div class="form-group"><label>📝 메모</label><textarea id="applicant-notes"></textarea></div>
+                        <button class="btn btn-primary" onclick="addApplicant()">➕ 지원자 추가</button>
+                    </div>
+
+                    <div class="search-bar">
+                        <input type="text" id="search-name" placeholder="이름 검색" oninput="loadApplicants()">
+                        <select id="search-region" onchange="loadApplicants()"><option value="">지역 전체</option></select>
+                        <select id="search-status" onchange="loadApplicants()">
+                            <option value="">상태 전체</option>
+                            <option value="applicant">지원 중</option>
+                            <option value="pending">입사 예정</option>
+                            <option value="rejected">탈락</option>
+                        </select>
+                        <select id="search-platform" onchange="loadApplicants()"><option value="">플랫폼 전체</option></select>
+                        <button class="btn btn-secondary btn-small" onclick="resetApplicantSearch()" style="margin:0;">초기화</button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>이름</th><th>연락처</th><th>지원 업체</th><th>지역</th><th>자차</th><th>상태</th><th>플랫폼</th><th>메모</th><th>작업</th></tr></thead>
+                            <tbody id="applicants-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== 근로자 관리 ===================== -->
+                <div id="employees" class="section">
+                    <h2>👔 근로자 관리</h2>
+                    <div class="info-box">💡 4대보험 가입자와 3.3% 공제(프리랜서) 근로자를 분류하면 급여 계산 시 공제액이 자동 적용됩니다.</div>
+                    <div class="form-section">
+                        <h3 style="margin-top:0;">근로자 추가</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>이름 *</label><input type="text" id="employee-name"></div>
+                            <div class="form-group"><label>연락처 *</label><input type="text" id="employee-phone"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>소속 업체 *</label><select id="employee-company"><option value="">업체 선택</option></select></div>
+                            <div class="form-group"><label>시급 (원) *</label><input type="number" id="employee-hourly-wage" placeholder="예: 10030"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>공제 구분 *</label>
+                                <select id="employee-insurance">
+                                    <option value="four">4대보험 가입</option>
+                                    <option value="freelance">3.3% 공제 (사업소득)</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>직급/직무</label><input type="text" id="employee-position"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>주민등록번호</label><input type="text" id="employee-resident-id" placeholder="000000-0000000"></div>
+                            <div class="form-group"><label>계좌번호 (은행 포함)</label><input type="text" id="employee-bank" placeholder="예: 국민 123456-01-123456"></div>
+                        </div>
+                        <div class="form-group"><label>채용일</label><input type="date" id="employee-hire-date"></div>
+                        <button class="btn btn-primary" onclick="addEmployee()">➕ 근로자 추가</button>
+                    </div>
+
+                    <div class="search-bar">
+                        <input type="text" id="emp-search-name" placeholder="이름 검색" oninput="loadEmployees()">
+                        <select id="emp-search-company" onchange="loadEmployees()"><option value="">업체 전체</option></select>
+                        <select id="emp-search-status" onchange="loadEmployees()">
+                            <option value="active">재직자</option>
+                            <option value="resigned">퇴사자</option>
+                            <option value="">전체</option>
+                        </select>
+                        <select id="emp-search-insurance" onchange="loadEmployees()">
+                            <option value="">공제 전체</option>
+                            <option value="four">4대보험</option>
+                            <option value="freelance">3.3%</option>
+                        </select>
+                        <button class="btn btn-secondary btn-small" onclick="resetEmployeeSearch()" style="margin:0;">초기화</button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>이름</th><th>연락처</th><th>소속 업체</th><th>직무</th><th>시급</th><th>공제</th><th>주민번호</th><th>계좌</th><th>상태</th><th>작업</th></tr></thead>
+                            <tbody id="employees-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== 업체 관리 ===================== -->
+                <div id="companies" class="section">
+                    <h2>🏢 업체 관리</h2>
+                    <div class="info-box">💡 업체의 근무형태·근무시간·점심시간·급여일을 설정하면 소속 근로자의 급여 계산에 자동 적용됩니다.</div>
+                    <div class="form-section">
+                        <h3 style="margin-top:0;">업체 추가</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>업체명 *</label><input type="text" id="company-name"></div>
+                            <div class="form-group"><label>담당자명</label><input type="text" id="company-contact-name"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>담당자 연락처</label><input type="text" id="company-contact-phone"></div>
+                            <div class="form-group"><label>이메일</label><input type="email" id="company-email"></div>
+                        </div>
+                        <div class="form-group"><label>주소</label><input type="text" id="company-address"></div>
+                        <div class="form-row">
+                            <div class="form-group"><label>급여일 (매월 N일)</label><input type="number" id="company-payday" min="1" max="31" placeholder="예: 10"></div>
+                            <div class="form-group"><label>점심/휴게 시간 (분)</label><input type="number" id="company-lunch-time" value="60" min="0"></div>
+                        </div>
+                        <div class="form-group"><label>📝 업체 메모</label><textarea id="company-memo" placeholder="급여 관련 특이사항, 계약 조건 등"></textarea></div>
+                        <h3>근무 시간 설정</h3>
+                        <div class="form-group"><label>근무 형태</label>
+                            <select id="company-work-type">
+                                <option value="day">주간근무</option>
+                                <option value="night">야간근무</option>
+                                <option value="shift">주야간 2교대</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>주간 출근</label><input type="time" id="company-start-time-day" value="09:00"></div>
+                            <div class="form-group"><label>주간 퇴근</label><input type="time" id="company-end-time-day" value="18:00"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>야간 출근</label><input type="time" id="company-start-time-night" value="18:00"></div>
+                            <div class="form-group"><label>야간 퇴근</label><input type="time" id="company-end-time-night" value="09:00"></div>
+                        </div>
+                        <button class="btn btn-primary" onclick="addCompany()">➕ 업체 추가</button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>업체명</th><th>담당자</th><th>연락처</th><th>급여일</th><th>근무 설정</th><th>메모</th><th>작업</th></tr></thead>
+                            <tbody id="companies-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== 출퇴근 관리 ===================== -->
+                <div id="attendance" class="section">
+                    <h2>⏱️ 출퇴근 관리</h2>
+                    <div class="info-box">💡 근무형태 선택 시 업체 설정 시간이 자동 적용되고, 연장근무는 추가 시간만 입력합니다. 기록은 명세서 엑셀에 자동 반영됩니다.</div>
+                    <div class="form-section">
+                        <h3 style="margin-top:0;">출퇴근 기록</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>근로자 *</label><select id="attendance-employee" onchange="showCompanyWorkTime()"><option value="">근로자 선택</option></select></div>
+                            <div class="form-group"><label>날짜 *</label><input type="date" id="attendance-date"></div>
+                        </div>
+                        <div id="company-info-display"></div>
+                        <div class="form-row">
+                            <div class="form-group"><label>근무 형태 *</label>
+                                <select id="attendance-shift" onchange="updateOvertimeDefaultValue()">
+                                    <option value="근무">근무</option>
+                                    <option value="연장">연장</option>
+                                    <option value="야간">야간</option>
+                                    <option value="특근">특근</option>
+                                    <option value="특잔">특잔</option>
+                                    <option value="주휴">주휴</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>시간 *</label><input type="number" id="attendance-overtime" value="8" min="0" step="0.5"></div>
+                        </div>
+                        <div class="form-group"><label>비고</label><input type="text" id="attendance-note"></div>
+                        <button class="btn btn-primary" onclick="addAttendance()">📝 기록 저장</button>
+                    </div>
+
+                    <div class="search-bar">
+                        <label style="font-weight:600; font-size:13px;">조회 월:</label>
+                        <input type="month" id="attendance-month" onchange="loadAttendanceByMonth()">
+                        <select id="attendance-filter-employee" onchange="loadAttendanceByMonth()"><option value="">근로자 전체</option></select>
+                        <button class="btn btn-success btn-small" onclick="exportAttendanceExcel()" style="margin:0;">📗 출퇴근 엑셀 다운로드</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>근로자명</th><th>날짜</th><th>근무형태</th><th>기본 근무시간</th><th>연장</th><th>비고</th><th>작업</th></tr></thead>
+                            <tbody id="attendance-table"></tbody>
+                        </table>
+                    </div>
+
+                    <h3 style="margin-top:24px;">📊 월간 출퇴근 현황 (미리보기)</h3>
+                    <div id="attendance-preview-area" style="overflow-x:auto;"></div>
+                </div>
+
+                <!-- ===================== 급여 관리 ===================== -->
+                <div id="payroll" class="section">
+                    <h2>💰 급여 관리</h2>
+                    <div class="info-box">💡 기본급 + 연장·특근·주휴수당 + 추가수당 − 공제(4대보험 또는 3.3%) = 실지급액. 출퇴근 관리에서 월간 출퇴근 기록을 엑셀로 다운로드할 수 있습니다.</div>
+
+                    <div class="form-section">
+                        <h3 style="margin-top:0;">추가 수당 입력 (교통비, 월차 등)</h3>
+                        <div class="form-row-3">
+                            <div class="form-group"><label>근로자</label><select id="allowance-employee"><option value="">근로자 선택</option></select></div>
+                            <div class="form-group"><label>적용 월</label><input type="month" id="allowance-month"></div>
+                            <div class="form-group"><label>수당 이름</label><input type="text" id="allowance-name" placeholder="예: 교통비"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>금액 (원)</label><input type="number" id="allowance-amount" placeholder="예: 100000"></div>
+                            <div style="display:flex; align-items:end;"><button class="btn btn-primary" onclick="addAllowance()" style="margin-bottom:13px;">➕ 수당 추가</button></div>
+                        </div>
+                        <div id="allowance-list" style="font-size:12px;"></div>
+                    </div>
+
+                    <div class="search-bar">
+                        <label style="font-weight:600; font-size:13px;">계산 월:</label>
+                        <input type="month" id="payroll-month" onchange="calculatePayroll()">
+                        <input type="text" id="payroll-search-name" placeholder="근로자 이름 검색" oninput="loadPayroll()">
+                        <select id="payroll-search-company" onchange="loadPayroll()"><option value="">업체 전체</option></select>
+                        <button class="btn btn-primary btn-small" onclick="calculatePayroll()" style="margin:0;">📊 급여 계산</button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>근로자명</th><th>업체</th><th>일수</th><th>기본급</th><th>연장</th><th>야간</th><th>특근</th><th>특잔</th><th>주휴</th><th>추가수당</th><th><strong>월예상급여</strong></th><th>작업</th></tr></thead>
+                            <tbody id="payroll-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== 설정 ===================== -->
+                <div id="settings" class="section">
+                    <h2>⚙️ 시스템 설정</h2>
+
+                    <div class="settings-section">
+                        <div class="settings-title">📝 화면 제목 설정</div>
+                        <div class="form-group"><label>메인 제목</label><input type="text" id="setting-main-title"></div>
+                        <div class="form-group"><label>부제목</label><input type="text" id="setting-main-subtitle"></div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-title">📱 지원 플랫폼 관리</div>
+                        <div style="margin-bottom:10px;" id="platform-list"></div>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="new-platform-name" placeholder="새 플랫폼 이름" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:13px;">
+                            <button class="btn btn-primary btn-small" onclick="addPlatform()" style="margin:0;">➕ 추가</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-title">💰 급여 계산 설정</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>연장수당 배수</label><input type="number" id="setting-overtime-multiplier" step="0.1"></div>
+                            <div class="form-group"><label>특근수당 배수</label><input type="number" id="setting-special-multiplier" step="0.1"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>주휴수당 (시급 × N시간)</label><input type="number" id="setting-weekly-rest-multiplier" step="0.5"></div>
+                            <div class="form-group"><label>1일 기본 근무 상한 (시간)</label><input type="number" id="setting-base-hours" step="0.5"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-title">🛡️ 공제율 설정 (%)</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>국민연금</label><input type="number" id="setting-rate-pension" step="0.001"></div>
+                            <div class="form-group"><label>건강보험</label><input type="number" id="setting-rate-health" step="0.001"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>장기요양 (건강보험료의 %)</label><input type="number" id="setting-rate-care" step="0.01"></div>
+                            <div class="form-group"><label>고용보험</label><input type="number" id="setting-rate-employment" step="0.01"></div>
+                        </div>
+                        <div class="form-group"><label>프리랜서 공제율 (사업소득)</label><input type="number" id="setting-rate-freelance" step="0.1"></div>
+                        <div style="font-size:11px; color:#888;">※ 요율은 매년 변경될 수 있으니 필요 시 직접 수정하세요. 근로자 부담분 기준입니다.</div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-title">📄 급여명세서 템플릿 (v5+)</div>
+                        <div id="template-status-display" style="padding:10px; background:#f0f0f0; border-radius:6px; margin-bottom:12px; font-size:12px;">
+                            ⚠️ 템플릿이 로드되지 않았습니다.
+                        </div>
+                        <div style="display:flex; gap:8px; margin-bottom:12px;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('template-file').click()">📤 템플릿 업로드</button>
+                            <button class="btn btn-danger" id="reset-template-btn" onclick="resetTemplate()" style="display:none;">🗑️ 제거</button>
+                        </div>
+                        <input type="file" id="template-file" accept=".xlsx" style="display:none;" onchange="uploadTemplate(this)">
+                        <div style="font-size:11px; color:#666; line-height:1.6;">
+                            <strong>템플릿 업로드 방법:</strong><br>
+                            당신의 급여명세서 .xlsx 파일을 업로드하면, 이후 모든 명세서가 그 양식으로 자동 생성됩니다.<br><br>
+                            <strong>필수 셀 구조:</strong><br>
+                            • 성명: B8 | 시급: AH10<br>
+                            • 근무형태: C42(근무), C43(연장), C44(야간), C45(특근), C46(특잔)<br>
+                            • 날짜: D42~AI42 (1~30일)
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-title">💾 데이터 관리</div>
+                        <button class="btn btn-secondary" onclick="downloadDataBackup()">📥 데이터 백업</button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('restore-file').click()">📤 백업 복원</button>
+                        <input type="file" id="restore-file" accept=".json" style="display:none;" onchange="restoreBackup(this)">
+                        <button class="btn btn-danger" onclick="clearAllData()">🗑️ 모든 데이터 삭제</button>
+                    </div>
+
+                    <button class="btn btn-primary" style="width:100%;" onclick="saveSettings()">💾 모든 설정 저장</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 공용 수정 모달 -->
+    <div id="editModal" class="edit-modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('editModal')">&times;</button>
+            <div class="modal-header" id="editModalTitle">수정</div>
+            <div id="editModalBody"></div>
+        </div>
+    </div>
+
+    <!-- 입사 처리 모달 -->
+    <div id="hireModal" class="edit-modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('hireModal')">&times;</button>
+            <div class="modal-header">지원자 → 근로자 전환</div>
+            <div id="hireModalBody"></div>
+        </div>
+    </div>
+
+    <!-- 급여 상세 모달 -->
+    <div id="payrollDetailModal" class="edit-modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('payrollDetailModal')">&times;</button>
+            <div class="modal-header">급여 명세 상세</div>
+            <div id="payrollModalBody"></div>
+        </div>
+    </div>
+
+    <!-- 확인 모달 -->
+    <div id="confirm-modal" class="edit-modal">
+        <div class="modal-content">
+            <div id="confirm-message"></div>
+            <button class="btn btn-danger" id="confirm-yes">확인</button>
+            <button class="btn btn-secondary" onclick="closeModal('confirm-modal')">취소</button>
+        </div>
+    </div>
+
+    <script>
+        // ============ 기본 데이터 ============
+        const DEFAULT_DATA = {
+            applicants: [], employees: [], companies: [], attendance: [], allowances: [],
+            template: null,
+            settings: {
+                mainTitle: '🚀 아웃소싱 HR 통합 관리 시스템',
+                mainSubtitle: '지원자 • 채용 • 출퇴근 • 급여 - 모든 업무 한곳에서 관리',
+                overtimeMultiplier: 1.5, specialMultiplier: 2, weeklyRestMultiplier: 8, baseHours: 8,
+                platforms: ['사람인', '잡코리아', '알바몬', '알바천국', '벼룩시장', '기타'],
+                ratePension: 4.5, rateHealth: 3.545, rateCare: 12.95, rateEmployment: 0.9, rateFreelance: 3.3
+            }
+        };
+
+        let systemData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        let currentPayrollData = [];
+        let currentPayrollMonth = '';
+
+        // ============ 토스트 & 확인창 ============
+        function toast(msg, type = 'success') {
+            const area = document.getElementById('toast-area');
+            const el = document.createElement('div');
+            el.className = 'toast ' + type;
+            el.textContent = msg;
+            area.appendChild(el);
+            setTimeout(() => el.remove(), 2600);
+        }
+
+        function confirmAction(message, onYes) {
+            document.getElementById('confirm-message').textContent = message;
+            const yesBtn = document.getElementById('confirm-yes');
+            const newBtn = yesBtn.cloneNode(true);
+            yesBtn.parentNode.replaceChild(newBtn, yesBtn);
+            newBtn.addEventListener('click', () => { closeModal('confirm-modal'); onYes(); });
+            document.getElementById('confirm-modal').classList.add('show');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        function mkBtn(text, cls, onClick) {
+            const b = document.createElement('button');
+            b.className = 'btn ' + cls + ' btn-small';
+            b.textContent = text;
+            b.addEventListener('click', onClick);
+            return b;
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // ============ 저장/로드 ============
+        function loadData() {
+            try {
+                const saved = localStorage.getItem('hrSystemData');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    systemData = {
+                        ...JSON.parse(JSON.stringify(DEFAULT_DATA)),
+                        ...parsed,
+                        allowances: parsed.allowances || [],
+                        settings: { ...DEFAULT_DATA.settings, ...(parsed.settings || {}) }
+                    };
+                    // 기존 데이터 마이그레이션: status/insurance 없는 근로자
+                    systemData.employees.forEach(e => {
+                        if (!e.status) e.status = 'active';
+                        if (!e.insurance) e.insurance = 'four';
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('hrSystemData', JSON.stringify(systemData));
+            } catch (e) {
+                toast('저장 오류: ' + e.message, 'error');
+            }
+            renderAll();
+        }
+
+        // ============ 초기화 ============
+        function init() {
+            loadData();
+            const today = new Date().toISOString().split('T')[0];
+            const month = today.slice(0, 7);
+            document.getElementById('attendance-date').value = today;
+            document.getElementById('employee-hire-date').value = today;
+            document.getElementById('attendance-month').value = month;
+            document.getElementById('payroll-month').value = month;
+            document.getElementById('allowance-month').value = month;
+            loadSettingsForm();
+            renderAll();
+        }
+
+        function renderAll() {
+            applyCustomTitles();
+            renderPlatformOptions();
+            updateAllSelects();
+            loadApplicants();
+            loadEmployees();
+            loadCompanies();
+            loadAttendanceByMonth();
+            renderAllowanceList();
+            updateDashboard();
+            updateTemplateStatus();
+        }
+
+        // ============ 탭 ============
+        function switchTab(el) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(el.dataset.tab).classList.add('active');
+            el.classList.add('active');
+        }
+        function switchTabByName(name) {
+            const el = document.querySelector(`.nav-item[data-tab="${name}"]`);
+            if (el) switchTab(el);
+        }
+
+        // ============ 설정 ============
+        function loadSettingsForm() {
+            const s = systemData.settings;
+            document.getElementById('setting-main-title').value = s.mainTitle;
+            document.getElementById('setting-main-subtitle').value = s.mainSubtitle;
+            document.getElementById('setting-overtime-multiplier').value = s.overtimeMultiplier;
+            document.getElementById('setting-special-multiplier').value = s.specialMultiplier;
+            document.getElementById('setting-weekly-rest-multiplier').value = s.weeklyRestMultiplier;
+            document.getElementById('setting-base-hours').value = s.baseHours;
+            document.getElementById('setting-rate-pension').value = s.ratePension;
+            document.getElementById('setting-rate-health').value = s.rateHealth;
+            document.getElementById('setting-rate-care').value = s.rateCare;
+            document.getElementById('setting-rate-employment').value = s.rateEmployment;
+            document.getElementById('setting-rate-freelance').value = s.rateFreelance;
+            renderPlatformList();
+        }
+
+        function saveSettings() {
+            const s = systemData.settings;
+            s.mainTitle = document.getElementById('setting-main-title').value || s.mainTitle;
+            s.mainSubtitle = document.getElementById('setting-main-subtitle').value || '';
+            s.overtimeMultiplier = parseFloat(document.getElementById('setting-overtime-multiplier').value) || 1.5;
+            s.specialMultiplier = parseFloat(document.getElementById('setting-special-multiplier').value) || 2;
+            s.weeklyRestMultiplier = parseFloat(document.getElementById('setting-weekly-rest-multiplier').value) || 8;
+            s.baseHours = parseFloat(document.getElementById('setting-base-hours').value) || 8;
+            s.ratePension = parseFloat(document.getElementById('setting-rate-pension').value) || 0;
+            s.rateHealth = parseFloat(document.getElementById('setting-rate-health').value) || 0;
+            s.rateCare = parseFloat(document.getElementById('setting-rate-care').value) || 0;
+            s.rateEmployment = parseFloat(document.getElementById('setting-rate-employment').value) || 0;
+            s.rateFreelance = parseFloat(document.getElementById('setting-rate-freelance').value) || 3.3;
+            saveData();
+            toast('설정이 저장되었습니다.');
+        }
+
+        function applyCustomTitles() {
+            document.getElementById('main-title').textContent = systemData.settings.mainTitle;
+            document.getElementById('main-subtitle').textContent = systemData.settings.mainSubtitle;
+        }
+
+        // ============ 플랫폼 ============
+        function renderPlatformList() {
+            const box = document.getElementById('platform-list');
+            box.innerHTML = '';
+            systemData.settings.platforms.forEach((p, i) => {
+                const tag = document.createElement('span');
+                tag.className = 'platform-tag';
+                const txt = document.createTextNode(p + ' ');
+                const btn = document.createElement('button');
+                btn.textContent = '×';
+                btn.addEventListener('click', () => removePlatform(i));
+                tag.appendChild(txt);
+                tag.appendChild(btn);
+                box.appendChild(tag);
+            });
+        }
+
+        // ============ 템플릿 관리 (v5+) ============
+        function uploadTemplate(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const base64 = e.target.result;
+                    if (!base64.includes('PK')) {
+                        toast('유효한 XLSX 파일이 아닙니다.', 'error');
+                        return;
+                    }
+                    systemData.template = base64;
+                    saveData();
+                    updateTemplateStatus();
+                    toast('명세서 템플릿이 업로드되었습니다. 이제 모든 명세서가 이 양식으로 생성됩니다.', 'success');
+                } catch (err) {
+                    toast('템플릿 업로드 실패: ' + err.message, 'error');
+                }
+            };
+            reader.readAsDataURL(file);
+            input.value = '';
+        }
+
+        function resetTemplate() {
+            if (confirm('템플릿을 제거하시겠습니까?')) {
+                systemData.template = null;
+                saveData();
+                updateTemplateStatus();
+                toast('템플릿이 제거되었습니다.', 'info');
+            }
+        }
+
+        function updateTemplateStatus() {
+            const statusEl = document.getElementById('template-status-display');
+            const resetBtn = document.getElementById('reset-template-btn');
+            if (systemData.template) {
+                statusEl.innerHTML = '✅ <strong>템플릿 로드됨</strong> - 모든 명세서가 업로드된 양식으로 생성됩니다.';
+                statusEl.style.background = '#dcfce7';
+                statusEl.style.color = '#15803d';
+                statusEl.style.borderLeft = '3px solid #27ae60';
+                resetBtn.style.display = 'inline-block';
+            } else {
+                statusEl.innerHTML = '⚠️ 템플릿이 로드되지 않았습니다.';
+                statusEl.style.background = '#f0f0f0';
+                statusEl.style.color = '#333';
+                statusEl.style.borderLeft = '3px solid #ddd';
+                resetBtn.style.display = 'none';
+            }
+        }
+
+        function addPlatform() {
+            const input = document.getElementById('new-platform-name');
+            const name = input.value.trim();
+            if (!name) { toast('플랫폼 이름을 입력하세요.', 'error'); return; }
+            if (systemData.settings.platforms.includes(name)) { toast('이미 존재하는 플랫폼입니다.', 'error'); return; }
+            systemData.settings.platforms.push(name);
+            input.value = '';
+            saveData();
+            renderPlatformList();
+            toast('플랫폼이 추가되었습니다.');
+        }
+
+        function removePlatform(index) {
+            systemData.settings.platforms.splice(index, 1);
+            saveData();
+            renderPlatformList();
+        }
+
+        function renderPlatformOptions() {
+            const addSel = document.getElementById('applicant-platform');
+            const searchSel = document.getElementById('search-platform');
+            const av = addSel.value, sv = searchSel.value;
+            addSel.innerHTML = '';
+            searchSel.innerHTML = '<option value="">플랫폼 전체</option>';
+            systemData.settings.platforms.forEach(p => {
+                addSel.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
+                searchSel.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
+            });
+            if (av) addSel.value = av;
+            searchSel.value = sv;
+        }
+
+        // ============ 셀렉트 갱신 ============
+        function updateAllSelects() {
+            const companySelects = [
+                { el: document.getElementById('employee-company'), first: '업체 선택' },
+                { el: document.getElementById('applicant-company'), first: '업체 선택' },
+                { el: document.getElementById('emp-search-company'), first: '업체 전체' },
+                { el: document.getElementById('payroll-search-company'), first: '업체 전체' }
+            ];
+            companySelects.forEach(({ el, first }) => {
+                const val = el.value;
+                el.innerHTML = `<option value="">${first}</option>`;
+                systemData.companies.forEach(c => el.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)}</option>`);
+                el.value = val;
+            });
+            const activeEmps = systemData.employees.filter(e => e.status === 'active');
+            const empSelects = [
+                { el: document.getElementById('attendance-employee'), first: '근로자 선택', list: activeEmps },
+                { el: document.getElementById('attendance-filter-employee'), first: '근로자 전체', list: systemData.employees },
+                { el: document.getElementById('allowance-employee'), first: '근로자 선택', list: activeEmps }
+            ];
+            empSelects.forEach(({ el, first, list }) => {
+                const val = el.value;
+                el.innerHTML = `<option value="">${first}</option>`;
+                list.forEach(e => el.innerHTML += `<option value="${e.id}">${escapeHtml(e.name)}</option>`);
+                el.value = val;
+            });
+            const regionSelect = document.getElementById('search-region');
+            const rv = regionSelect.value;
+            const regions = [...new Set(systemData.applicants.map(a => a.region).filter(Boolean))].sort();
+            regionSelect.innerHTML = '<option value="">지역 전체</option>';
+            regions.forEach(r => regionSelect.innerHTML += `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`);
+            regionSelect.value = rv;
+        }
+
+        // ============ 근무시간 유틸 ============
+        function shiftHoursForCompany(company, shiftType) {
+            if (!company) return 8;
+            let start, end;
+            if (shiftType === 'night') {
+                start = company.startTimeNight || '18:00';
+                end = company.endTimeNight || '09:00';
+            } else {
+                start = company.startTimeDay || '09:00';
+                end = company.endTimeDay || '18:00';
+            }
+            const [sh, sm] = start.split(':').map(Number);
+            const [eh, em] = end.split(':').map(Number);
+            let minutes = (eh * 60 + em) - (sh * 60 + sm);
+            if (minutes <= 0) minutes += 24 * 60;
+            minutes -= (company.lunchTime || 0);
+            return Math.max(0, minutes / 60);
+        }
+
+        function workTypeLabel(t) { return t === 'day' ? '주간' : t === 'night' ? '야간' : '주야 2교대'; }
+        function shiftLabel(s) { return { day: '주간', night: '야간', special: '특근', rest: '주휴' }[s] || s; }
+        function shiftClass(s) { return { day: 'shift-day', night: 'shift-night', special: 'shift-special', rest: 'shift-rest' }[s] || ''; }
+
+        // ============ 지원자 ============
+        function addApplicant() {
+            const name = document.getElementById('applicant-name').value.trim();
+            const phone = document.getElementById('applicant-phone').value.trim();
+            if (!name || !phone) { toast('이름과 연락처는 필수입니다.', 'error'); return; }
+            systemData.applicants.push({
+                id: Date.now(), name, phone,
+                company: document.getElementById('applicant-company').value,
+                region: document.getElementById('applicant-region').value.trim(),
+                car: document.getElementById('applicant-car').value,
+                platform: document.getElementById('applicant-platform').value,
+                notes: document.getElementById('applicant-notes').value.trim(),
+                status: 'applicant',
+                appliedDate: new Date().toISOString().split('T')[0]
+            });
+            saveData();
+            ['applicant-name','applicant-phone','applicant-region','applicant-notes'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('applicant-car').value = '';
+            toast('지원자가 추가되었습니다.');
+        }
+
+        function resetApplicantSearch() {
+            ['search-name','search-region','search-status','search-platform'].forEach(id => document.getElementById(id).value = '');
+            loadApplicants();
+        }
+
+        function loadApplicants() {
+            const name = document.getElementById('search-name').value.trim().toLowerCase();
+            const region = document.getElementById('search-region').value;
+            const status = document.getElementById('search-status').value;
+            const platform = document.getElementById('search-platform').value;
+            const list = systemData.applicants.filter(a =>
+                (!name || a.name.toLowerCase().includes(name)) &&
+                (!region || a.region === region) &&
+                (!status || a.status === status) &&
+                (!platform || a.platform === platform)
+            );
+            const tbody = document.getElementById('applicants-table');
+            tbody.innerHTML = '';
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">지원자가 없습니다.</td></tr>';
+                return;
+            }
+            const badges = { applicant: ['지원 중','status-applicant'], pending: ['입사 예정','status-pending'], rejected: ['탈락','status-rejected'] };
+            list.forEach(app => {
+                const company = systemData.companies.find(c => c.id == app.company);
+                const [label, cls] = badges[app.status] || badges.applicant;
+                const car = app.car === 'yes' ? '보유' : app.car === 'no' ? '미보유' : '-';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHtml(app.name)}</td><td>${escapeHtml(app.phone)}</td>
+                    <td>${company ? escapeHtml(company.name) : '-'}</td>
+                    <td>${escapeHtml(app.region) || '-'}</td><td>${car}</td>
+                    <td><span class="status-badge ${cls}">${label}</span></td>
+                    <td>${escapeHtml(app.platform) || '-'}</td>
+                    <td>${app.notes ? '<div class="memo-box">' + escapeHtml(app.notes) + '</div>' : '-'}</td>`;
+                const actionTd = document.createElement('td');
+                actionTd.style.whiteSpace = 'nowrap';
+                actionTd.appendChild(mkBtn('수정', 'btn-secondary', () => editApplicant(app.id)));
+                if (app.status === 'pending') {
+                    actionTd.appendChild(mkBtn('입사', 'btn-success', () => openHireModal(app.id)));
+                }
+                const sel = document.createElement('select');
+                sel.style.cssText = 'padding:5px;font-size:12px;margin-right:6px;';
+                [['applicant','지원중'],['pending','입사예정'],['rejected','탈락']].forEach(([v,t]) => {
+                    const o = document.createElement('option');
+                    o.value = v; o.textContent = t;
+                    if (app.status === v) o.selected = true;
+                    sel.appendChild(o);
+                });
+                sel.addEventListener('change', () => { app.status = sel.value; saveData(); });
+                actionTd.appendChild(sel);
+                actionTd.appendChild(mkBtn('삭제', 'btn-danger', () => {
+                    confirmAction(`'${app.name}' 지원자를 삭제하시겠습니까?`, () => {
+                        systemData.applicants = systemData.applicants.filter(a => a.id !== app.id);
+                        saveData();
+                        toast('지원자가 삭제되었습니다.');
+                    });
+                }));
+                tr.appendChild(actionTd);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editApplicant(id) {
+            const app = systemData.applicants.find(a => a.id === id);
+            if (!app) return;
+            let companyOptions = '<option value="">업체 선택</option>';
+            systemData.companies.forEach(c => {
+                companyOptions += `<option value="${c.id}" ${app.company == c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`;
+            });
+            let platformOptions = '';
+            systemData.settings.platforms.forEach(p => {
+                platformOptions += `<option value="${escapeHtml(p)}" ${app.platform === p ? 'selected' : ''}>${escapeHtml(p)}</option>`;
+            });
+            document.getElementById('editModalTitle').textContent = '지원자 정보 수정';
+            document.getElementById('editModalBody').innerHTML = `
+                <div class="form-row">
+                    <div class="form-group"><label>이름</label><input type="text" id="edit-a-name" value="${escapeHtml(app.name)}"></div>
+                    <div class="form-group"><label>연락처</label><input type="text" id="edit-a-phone" value="${escapeHtml(app.phone)}"></div>
+                </div>
+                <div class="form-group"><label>지원 업체</label><select id="edit-a-company">${companyOptions}</select></div>
+                <div class="form-row">
+                    <div class="form-group"><label>지역</label><input type="text" id="edit-a-region" value="${escapeHtml(app.region)}"></div>
+                    <div class="form-group"><label>자차</label>
+                        <select id="edit-a-car">
+                            <option value="">선택</option>
+                            <option value="yes" ${app.car === 'yes' ? 'selected' : ''}>보유</option>
+                            <option value="no" ${app.car === 'no' ? 'selected' : ''}>미보유</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group"><label>플랫폼</label><select id="edit-a-platform">${platformOptions}</select></div>
+                <div class="form-group"><label>📝 메모</label><textarea id="edit-a-notes">${escapeHtml(app.notes)}</textarea></div>
+                <button class="btn btn-primary" id="edit-a-save">저장</button>
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">취소</button>
+            `;
+            document.getElementById('edit-a-save').addEventListener('click', () => {
+                app.name = document.getElementById('edit-a-name').value;
+                app.phone = document.getElementById('edit-a-phone').value;
+                app.company = document.getElementById('edit-a-company').value;
+                app.region = document.getElementById('edit-a-region').value;
+                app.car = document.getElementById('edit-a-car').value;
+                app.platform = document.getElementById('edit-a-platform').value;
+                app.notes = document.getElementById('edit-a-notes').value;
+                saveData();
+                closeModal('editModal');
+                toast('지원자 정보가 수정되었습니다.');
+            });
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function openHireModal(appId) {
+            const app = systemData.applicants.find(a => a.id === appId);
+            if (!app) return;
+            let companyOptions = '<option value="">업체 선택</option>';
+            systemData.companies.forEach(c => {
+                companyOptions += `<option value="${c.id}" ${app.company == c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`;
+            });
+            document.getElementById('hireModalBody').innerHTML = `
+                <div class="info-box">지원자 정보가 근로자 DB로 이동합니다.</div>
+                <div class="form-row">
+                    <div class="form-group"><label>이름</label><input type="text" value="${escapeHtml(app.name)}" readonly></div>
+                    <div class="form-group"><label>연락처</label><input type="text" value="${escapeHtml(app.phone)}" readonly></div>
+                </div>
+                <div class="form-group"><label>소속 업체 *</label><select id="hire-company">${companyOptions}</select></div>
+                <div class="form-row">
+                    <div class="form-group"><label>시급 (원) *</label><input type="number" id="hire-wage"></div>
+                    <div class="form-group"><label>공제 구분 *</label>
+                        <select id="hire-insurance">
+                            <option value="four">4대보험 가입</option>
+                            <option value="freelance">3.3% 공제</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>주민등록번호</label><input type="text" id="hire-resident" placeholder="000000-0000000"></div>
+                    <div class="form-group"><label>계좌번호</label><input type="text" id="hire-bank" placeholder="은행명 포함"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>직급/직무</label><input type="text" id="hire-position"></div>
+                    <div class="form-group"><label>입사일</label><input type="date" id="hire-date" value="${new Date().toISOString().split('T')[0]}"></div>
+                </div>
+                <button class="btn btn-success" id="hire-confirm">✅ 입사 처리</button>
+                <button class="btn btn-secondary" onclick="closeModal('hireModal')">취소</button>
+            `;
+            document.getElementById('hire-confirm').addEventListener('click', () => {
+                const company = document.getElementById('hire-company').value;
+                const wage = parseInt(document.getElementById('hire-wage').value);
+                if (!company || !wage) { toast('업체와 시급은 필수입니다.', 'error'); return; }
+                systemData.employees.push({
+                    id: Date.now(),
+                    name: app.name, phone: app.phone, company,
+                    hourlyWage: wage,
+                    insurance: document.getElementById('hire-insurance').value,
+                    residentId: document.getElementById('hire-resident').value.trim(),
+                    bankAccount: document.getElementById('hire-bank').value.trim(),
+                    position: document.getElementById('hire-position').value.trim(),
+                    hireDate: document.getElementById('hire-date').value,
+                    status: 'active', resignDate: ''
+                });
+                systemData.applicants = systemData.applicants.filter(a => a.id !== appId);
+                saveData();
+                closeModal('hireModal');
+                toast(app.name + ' 님이 근로자로 등록되었습니다.');
+            });
+            document.getElementById('hireModal').classList.add('show');
+        }
+
+        // ============ 근로자 ============
+        function addEmployee() {
+            const name = document.getElementById('employee-name').value.trim();
+            const phone = document.getElementById('employee-phone').value.trim();
+            const company = document.getElementById('employee-company').value;
+            const hourlyWage = parseInt(document.getElementById('employee-hourly-wage').value);
+            if (!name || !phone || !company || !hourlyWage) {
+                toast('이름, 연락처, 업체, 시급은 필수입니다.', 'error');
+                return;
+            }
+            systemData.employees.push({
+                id: Date.now(), name, phone, company, hourlyWage,
+                insurance: document.getElementById('employee-insurance').value,
+                residentId: document.getElementById('employee-resident-id').value.trim(),
+                bankAccount: document.getElementById('employee-bank').value.trim(),
+                position: document.getElementById('employee-position').value.trim(),
+                hireDate: document.getElementById('employee-hire-date').value,
+                status: 'active', resignDate: ''
+            });
+            saveData();
+            ['employee-name','employee-phone','employee-hourly-wage','employee-position','employee-resident-id','employee-bank'].forEach(id => document.getElementById(id).value = '');
+            toast('근로자가 추가되었습니다.');
+        }
+
+        function resetEmployeeSearch() {
+            document.getElementById('emp-search-name').value = '';
+            document.getElementById('emp-search-company').value = '';
+            document.getElementById('emp-search-status').value = 'active';
+            document.getElementById('emp-search-insurance').value = '';
+            loadEmployees();
+        }
+
+        function maskResident(rid) {
+            if (!rid) return '-';
+            const parts = rid.split('-');
+            if (parts.length === 2) return parts[0] + '-' + parts[1][0] + '******';
+            return rid.slice(0, 6) + '-*******';
+        }
+
+        function loadEmployees() {
+            const name = document.getElementById('emp-search-name').value.trim().toLowerCase();
+            const companyFilter = document.getElementById('emp-search-company').value;
+            const statusFilter = document.getElementById('emp-search-status').value;
+            const insFilter = document.getElementById('emp-search-insurance').value;
+            const list = systemData.employees.filter(e =>
+                (!name || e.name.toLowerCase().includes(name)) &&
+                (!companyFilter || e.company == companyFilter) &&
+                (!statusFilter || e.status === statusFilter) &&
+                (!insFilter || e.insurance === insFilter)
+            );
+            const tbody = document.getElementById('employees-table');
+            tbody.innerHTML = '';
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#999;">근로자가 없습니다.</td></tr>';
+                return;
+            }
+            list.forEach(emp => {
+                const company = systemData.companies.find(c => c.id == emp.company);
+                const insBadge = emp.insurance === 'four'
+                    ? '<span class="status-badge ins-four">4대보험</span>'
+                    : '<span class="status-badge ins-freelance">3.3%</span>';
+                const statusBadge = emp.status === 'active'
+                    ? '<span class="status-badge status-active">재직</span>'
+                    : `<span class="status-badge status-resigned">퇴사 (${emp.resignDate || '-'})</span>`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHtml(emp.name)}</td><td>${escapeHtml(emp.phone)}</td>
+                    <td>${company ? escapeHtml(company.name) : '-'}</td>
+                    <td>${escapeHtml(emp.position) || '-'}</td>
+                    <td>${emp.hourlyWage.toLocaleString()}원</td>
+                    <td>${insBadge}</td>
+                    <td class="sensitive">${maskResident(emp.residentId)}</td>
+                    <td class="sensitive">${escapeHtml(emp.bankAccount) || '-'}</td>
+                    <td>${statusBadge}</td>`;
+                const actionTd = document.createElement('td');
+                actionTd.style.whiteSpace = 'nowrap';
+                actionTd.appendChild(mkBtn('수정', 'btn-secondary', () => editEmployee(emp.id)));
+                if (emp.status === 'active') {
+                    actionTd.appendChild(mkBtn('퇴사', 'btn-warning', () => resignEmployee(emp.id)));
+                } else {
+                    actionTd.appendChild(mkBtn('복직', 'btn-success', () => {
+                        emp.status = 'active'; emp.resignDate = '';
+                        saveData();
+                        toast(emp.name + ' 님이 재직 상태로 변경되었습니다.');
+                    }));
+                }
+                actionTd.appendChild(mkBtn('삭제', 'btn-danger', () => {
+                    confirmAction(`'${emp.name}' 근로자를 완전히 삭제하시겠습니까? 출퇴근·수당 기록도 함께 삭제됩니다. (퇴사 처리만 하려면 '퇴사' 버튼을 사용하세요)`, () => {
+                        systemData.employees = systemData.employees.filter(e => e.id !== emp.id);
+                        systemData.attendance = systemData.attendance.filter(a => a.employeeId !== emp.id);
+                        systemData.allowances = systemData.allowances.filter(a => a.employeeId !== emp.id);
+                        saveData();
+                        toast('근로자가 삭제되었습니다.');
+                    });
+                }));
+                tr.appendChild(actionTd);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resignEmployee(id) {
+            const emp = systemData.employees.find(e => e.id === id);
+            if (!emp) return;
+            document.getElementById('editModalTitle').textContent = '퇴사 처리';
+            document.getElementById('editModalBody').innerHTML = `
+                <div class="info-box">퇴사 처리해도 기존 출퇴근·급여 기록은 유지됩니다. (마지막 달 급여 정산 가능)</div>
+                <div class="form-group"><label>퇴사일</label><input type="date" id="resign-date" value="${new Date().toISOString().split('T')[0]}"></div>
+                <button class="btn btn-warning" id="resign-confirm">퇴사 처리</button>
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">취소</button>
+            `;
+            document.getElementById('resign-confirm').addEventListener('click', () => {
+                emp.status = 'resigned';
+                emp.resignDate = document.getElementById('resign-date').value;
+                saveData();
+                closeModal('editModal');
+                toast(emp.name + ' 님이 퇴사 처리되었습니다.');
+            });
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function editEmployee(id) {
+            const emp = systemData.employees.find(e => e.id === id);
+            if (!emp) return;
+            let companyOptions = '<option value="">업체 선택</option>';
+            systemData.companies.forEach(c => {
+                companyOptions += `<option value="${c.id}" ${emp.company == c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`;
+            });
+            document.getElementById('editModalTitle').textContent = '근로자 정보 수정';
+            document.getElementById('editModalBody').innerHTML = `
+                <div class="form-row">
+                    <div class="form-group"><label>이름</label><input type="text" id="edit-e-name" value="${escapeHtml(emp.name)}"></div>
+                    <div class="form-group"><label>연락처</label><input type="text" id="edit-e-phone" value="${escapeHtml(emp.phone)}"></div>
+                </div>
+                <div class="form-group"><label>소속 업체</label><select id="edit-e-company">${companyOptions}</select></div>
+                <div class="form-row">
+                    <div class="form-group"><label>시급 (원)</label><input type="number" id="edit-e-wage" value="${emp.hourlyWage}"></div>
+                    <div class="form-group"><label>공제 구분</label>
+                        <select id="edit-e-insurance">
+                            <option value="four" ${emp.insurance === 'four' ? 'selected' : ''}>4대보험 가입</option>
+                            <option value="freelance" ${emp.insurance === 'freelance' ? 'selected' : ''}>3.3% 공제</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>주민등록번호</label><input type="text" id="edit-e-resident" value="${escapeHtml(emp.residentId)}"></div>
+                    <div class="form-group"><label>계좌번호</label><input type="text" id="edit-e-bank" value="${escapeHtml(emp.bankAccount)}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>직급/직무</label><input type="text" id="edit-e-position" value="${escapeHtml(emp.position)}"></div>
+                    <div class="form-group"><label>채용일</label><input type="date" id="edit-e-date" value="${emp.hireDate || ''}"></div>
+                </div>
+                <button class="btn btn-primary" id="edit-e-save">저장</button>
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">취소</button>
+            `;
+            document.getElementById('edit-e-save').addEventListener('click', () => {
+                emp.name = document.getElementById('edit-e-name').value;
+                emp.phone = document.getElementById('edit-e-phone').value;
+                emp.company = document.getElementById('edit-e-company').value;
+                emp.hourlyWage = parseInt(document.getElementById('edit-e-wage').value) || emp.hourlyWage;
+                emp.insurance = document.getElementById('edit-e-insurance').value;
+                emp.residentId = document.getElementById('edit-e-resident').value.trim();
+                emp.bankAccount = document.getElementById('edit-e-bank').value.trim();
+                emp.position = document.getElementById('edit-e-position').value;
+                emp.hireDate = document.getElementById('edit-e-date').value;
+                saveData();
+                closeModal('editModal');
+                toast('근로자 정보가 수정되었습니다.');
+            });
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        // ============ 업체 ============
+        function addCompany() {
+            const name = document.getElementById('company-name').value.trim();
+            if (!name) { toast('업체명은 필수입니다.', 'error'); return; }
+            systemData.companies.push({
+                id: Date.now(), name,
+                contactName: document.getElementById('company-contact-name').value.trim(),
+                contactPhone: document.getElementById('company-contact-phone').value.trim(),
+                email: document.getElementById('company-email').value.trim(),
+                address: document.getElementById('company-address').value.trim(),
+                payday: parseInt(document.getElementById('company-payday').value) || null,
+                memo: document.getElementById('company-memo').value.trim(),
+                workType: document.getElementById('company-work-type').value,
+                lunchTime: parseInt(document.getElementById('company-lunch-time').value) || 0,
+                startTimeDay: document.getElementById('company-start-time-day').value,
+                endTimeDay: document.getElementById('company-end-time-day').value,
+                startTimeNight: document.getElementById('company-start-time-night').value,
+                endTimeNight: document.getElementById('company-end-time-night').value
+            });
+            saveData();
+            ['company-name','company-contact-name','company-contact-phone','company-email','company-address','company-payday','company-memo'].forEach(id => document.getElementById(id).value = '');
+            toast('업체가 추가되었습니다.');
+        }
+
+        function loadCompanies() {
+            const tbody = document.getElementById('companies-table');
+            tbody.innerHTML = '';
+            if (systemData.companies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">등록된 업체가 없습니다.</td></tr>';
+                return;
+            }
+            systemData.companies.forEach(c => {
+                const dayH = shiftHoursForCompany(c, 'day').toFixed(1);
+                const nightH = shiftHoursForCompany(c, 'night').toFixed(1);
+                let timeDesc = '';
+                if (c.workType === 'day') timeDesc = `주간 ${c.startTimeDay}~${c.endTimeDay} (${dayH}h)`;
+                else if (c.workType === 'night') timeDesc = `야간 ${c.startTimeNight}~${c.endTimeNight} (${nightH}h)`;
+                else timeDesc = `주간 ${c.startTimeDay}~${c.endTimeDay} (${dayH}h)<br>야간 ${c.startTimeNight}~${c.endTimeNight} (${nightH}h)`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHtml(c.name)}</td>
+                    <td>${escapeHtml(c.contactName) || '-'}</td>
+                    <td>${escapeHtml(c.contactPhone) || '-'}</td>
+                    <td>${c.payday ? '매월 ' + c.payday + '일' : '-'}</td>
+                    <td style="font-size:11px;"><strong>${workTypeLabel(c.workType)}</strong> · 휴게 ${c.lunchTime}분<br>${timeDesc}</td>
+                    <td>${c.memo ? '<div class="memo-box">' + escapeHtml(c.memo) + '</div>' : '-'}</td>`;
+                const actionTd = document.createElement('td');
+                actionTd.style.whiteSpace = 'nowrap';
+                actionTd.appendChild(mkBtn('수정', 'btn-secondary', () => editCompany(c.id)));
+                actionTd.appendChild(mkBtn('삭제', 'btn-danger', () => {
+                    confirmAction(`'${c.name}' 업체를 삭제하시겠습니까?`, () => {
+                        systemData.companies = systemData.companies.filter(x => x.id !== c.id);
+                        saveData();
+                        toast('업체가 삭제되었습니다.');
+                    });
+                }));
+                tr.appendChild(actionTd);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editCompany(id) {
+            const c = systemData.companies.find(x => x.id === id);
+            if (!c) return;
+            document.getElementById('editModalTitle').textContent = '업체 정보 수정';
+            document.getElementById('editModalBody').innerHTML = `
+                <div class="form-group"><label>업체명</label><input type="text" id="edit-c-name" value="${escapeHtml(c.name)}"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>담당자명</label><input type="text" id="edit-c-contact" value="${escapeHtml(c.contactName)}"></div>
+                    <div class="form-group"><label>연락처</label><input type="text" id="edit-c-phone" value="${escapeHtml(c.contactPhone)}"></div>
+                </div>
+                <div class="form-group"><label>이메일</label><input type="email" id="edit-c-email" value="${escapeHtml(c.email)}"></div>
+                <div class="form-group"><label>주소</label><input type="text" id="edit-c-address" value="${escapeHtml(c.address)}"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>급여일 (매월 N일)</label><input type="number" id="edit-c-payday" value="${c.payday || ''}" min="1" max="31"></div>
+                    <div class="form-group"><label>점심/휴게 (분)</label><input type="number" id="edit-c-lunch" value="${c.lunchTime}" min="0"></div>
+                </div>
+                <div class="form-group"><label>📝 업체 메모</label><textarea id="edit-c-memo">${escapeHtml(c.memo)}</textarea></div>
+                <h3>근무 시간 설정</h3>
+                <div class="form-group"><label>근무 형태</label>
+                    <select id="edit-c-worktype">
+                        <option value="day" ${c.workType === 'day' ? 'selected' : ''}>주간근무</option>
+                        <option value="night" ${c.workType === 'night' ? 'selected' : ''}>야간근무</option>
+                        <option value="shift" ${c.workType === 'shift' ? 'selected' : ''}>주야간 2교대</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>주간 출근</label><input type="time" id="edit-c-sd" value="${c.startTimeDay}"></div>
+                    <div class="form-group"><label>주간 퇴근</label><input type="time" id="edit-c-ed" value="${c.endTimeDay}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>야간 출근</label><input type="time" id="edit-c-sn" value="${c.startTimeNight}"></div>
+                    <div class="form-group"><label>야간 퇴근</label><input type="time" id="edit-c-en" value="${c.endTimeNight}"></div>
+                </div>
+                <button class="btn btn-primary" id="edit-c-save">저장</button>
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">취소</button>
+            `;
+            document.getElementById('edit-c-save').addEventListener('click', () => {
+                c.name = document.getElementById('edit-c-name').value;
+                c.contactName = document.getElementById('edit-c-contact').value;
+                c.contactPhone = document.getElementById('edit-c-phone').value;
+                c.email = document.getElementById('edit-c-email').value;
+                c.address = document.getElementById('edit-c-address').value;
+                c.payday = parseInt(document.getElementById('edit-c-payday').value) || null;
+                c.lunchTime = parseInt(document.getElementById('edit-c-lunch').value) || 0;
+                c.memo = document.getElementById('edit-c-memo').value;
+                c.workType = document.getElementById('edit-c-worktype').value;
+                c.startTimeDay = document.getElementById('edit-c-sd').value;
+                c.endTimeDay = document.getElementById('edit-c-ed').value;
+                c.startTimeNight = document.getElementById('edit-c-sn').value;
+                c.endTimeNight = document.getElementById('edit-c-en').value;
+                saveData();
+                closeModal('editModal');
+                toast('업체 정보가 수정되었습니다.');
+            });
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        // ============ 출퇴근 ============
+        function showCompanyWorkTime() {
+            const empId = parseInt(document.getElementById('attendance-employee').value);
+            const emp = systemData.employees.find(e => e.id === empId);
+            const box = document.getElementById('company-info-display');
+            const shiftSelect = document.getElementById('attendance-shift');
+            if (!emp) { box.innerHTML = ''; return; }
+            const c = systemData.companies.find(x => x.id == emp.company);
+            if (!c) { box.innerHTML = ''; return; }
+            if (c.workType === 'night') shiftSelect.value = 'night';
+            else shiftSelect.value = 'day';
+            const dayH = shiftHoursForCompany(c, 'day').toFixed(1);
+            const nightH = shiftHoursForCompany(c, 'night').toFixed(1);
+            let lines = `⏱️ <strong>${workTypeLabel(c.workType)}</strong> · 🍽️ 휴게 <strong>${c.lunchTime}분</strong><br>`;
+            if (c.workType !== 'night') lines += `☀️ 주간 ${c.startTimeDay}~${c.endTimeDay} → 기본 <strong>${dayH}시간</strong><br>`;
+            if (c.workType !== 'day') lines += `🌙 야간 ${c.startTimeNight}~${c.endTimeNight} → 기본 <strong>${nightH}시간</strong>`;
+            box.innerHTML = `<div class="work-time-box"><strong>🏢 ${escapeHtml(c.name)}</strong><br>${lines}</div>`;
+        }
+
+        function updateOvertimeDefaultValue() {
+            const shift = document.getElementById('attendance-shift').value;
+            const input = document.getElementById('attendance-overtime');
+            
+            // 근무형태에 따라 기본값 설정
+            if (shift === '근무' || shift === '야간' || shift === '특근' || shift === '특잔') {
+                input.value = '8';
+            } else if (shift === '연장' || shift === '주휴') {
+                input.value = '0';
+            }
+        }
+
+        function addAttendance() {
+            const employeeId = parseInt(document.getElementById('attendance-employee').value);
+            const date = document.getElementById('attendance-date').value;
+            const shift = document.getElementById('attendance-shift').value;
+            const overtime = parseFloat(document.getElementById('attendance-overtime').value) || 0;
+            const note = document.getElementById('attendance-note').value.trim();
+            if (!employeeId || !date) { toast('근로자와 날짜를 선택하세요.', 'error'); return; }
+            
+            const emp = systemData.employees.find(e => e.id === employeeId);
+            const attendanceRecord = { id: Date.now(), employeeId, date, shift, overtime, note };
+            systemData.attendance.push(attendanceRecord);
+            saveData();
+            updateOvertimeDefaultValue();
+            document.getElementById('attendance-note').value = '';
+            toast(`${emp.name} - ${date} ${shift} ${overtime}시간이 등록되었습니다.`);
+            
+            // 📊 구글 스프레드시트로 자동 전송
+            sendToGoogleSheets(emp.name, date, shift, overtime);
+        }
+
+        function sendToGoogleSheets(name, date, shift, hours) {
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwjXYNZlCQrNNkdamtJOChgOWpiiho5Bnd8ZNMq097w8QfTIB1U-_EdSH2BfYYkWFcTLg/exec';
+            const payload = {
+                date: date,
+                name: name,
+                shift: shift,
+                hours: hours,
+                timestamp: new Date().toLocaleString('ko-KR')
+            };
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                mode: 'no-cors'
+            }).catch(err => {
+                console.error('구글 스프레드시트 전송 실패:', err);
+            });
+        }
+
+        function loadAttendanceByMonth() {
+            const month = document.getElementById('attendance-month').value;
+            const empFilter = document.getElementById('attendance-filter-employee').value;
+            const tbody = document.getElementById('attendance-table');
+            tbody.innerHTML = '';
+            let list = systemData.attendance.filter(a => a.date.startsWith(month));
+            if (empFilter) list = list.filter(a => a.employeeId == empFilter);
+            list.sort((a, b) => a.date.localeCompare(b.date));
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">출퇴근 기록이 없습니다.</td></tr>';
+                return;
+            }
+            list.forEach(att => {
+                const emp = systemData.employees.find(e => e.id === att.employeeId);
+                const company = emp ? systemData.companies.find(c => c.id == emp.company) : null;
+                const baseH = att.shift === 'rest' ? 0 : shiftHoursForCompany(company, att.shift === 'night' ? 'night' : 'day');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${emp ? escapeHtml(emp.name) : '(삭제된 근로자)'}</td>
+                    <td>${att.date}</td>
+                    <td><span class="status-badge ${shiftClass(att.shift)}">${shiftLabel(att.shift)}</span></td>
+                    <td>${att.shift === 'rest' ? '-' : baseH.toFixed(1) + '시간'}</td>
+                    <td>${att.overtime > 0 ? '+' + att.overtime + 'h' : '-'}</td>
+                    <td>${escapeHtml(att.note) || '-'}</td>`;
+                const actionTd = document.createElement('td');
+                actionTd.style.whiteSpace = 'nowrap';
+                actionTd.appendChild(mkBtn('수정', 'btn-secondary', () => editAttendance(att.id)));
+                actionTd.appendChild(mkBtn('삭제', 'btn-danger', () => {
+                    confirmAction('이 출퇴근 기록을 삭제하시겠습니까?', () => {
+                        systemData.attendance = systemData.attendance.filter(a => a.id !== att.id);
+                        saveData();
+                        toast('출퇴근 기록이 삭제되었습니다.');
+                    });
+                }));
+                tr.appendChild(actionTd);
+                tbody.appendChild(tr);
+            });
+            renderAttendancePreview(month);
+        }
+
+        function renderAttendancePreview(month) {
+            const previewArea = document.getElementById('attendance-preview-area');
+            const records = systemData.attendance.filter(a => a.date.startsWith(month));
+            
+            if (records.length === 0) {
+                previewArea.innerHTML = '<p style="color:#999; padding:12px;">기록이 없습니다.</p>';
+                return;
+            }
+
+            // 근로자별 데이터 구성
+            const byEmployee = {};
+            systemData.employees.forEach(emp => {
+                if (emp.status === 'active') {
+                    byEmployee[emp.id] = {
+                        name: emp.name,
+                        근무: Array(30).fill(0),
+                        연장: Array(30).fill(0),
+                        야간: Array(30).fill(0),
+                        특근: Array(30).fill(0),
+                        특잔: Array(30).fill(0)
+                    };
+                }
+            });
+
+            records.forEach(rec => {
+                if (byEmployee[rec.employeeId]) {
+                    const day = parseInt(rec.date.split('-')[2]) - 1;
+                    if (day >= 0 && day < 30) {
+                        // shift: '근무', '연장', '야간', '특근', '특잔'
+                        const shiftType = rec.shift;
+                        const hours = rec.overtime || 0;
+                        if (shiftType && byEmployee[rec.employeeId][shiftType] !== undefined) {
+                            byEmployee[rec.employeeId][shiftType][day] = hours;
+                        }
+                    }
+                }
+            });
+
+            // HTML 테이블 생성
+            const [year, monthNum] = month.split('-');
+            let html = `<table style="font-size:11px; border-collapse:collapse; width:100%; background:white; border:1px solid #e0e0e0;">
+                <thead>
+                <tr style="background:#f5f5f5;">
+                    <th style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">${year}년 ${parseInt(monthNum)}월</th>
+                    <th style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">근무형태</th>`;
+            
+            for (let i = 1; i <= 30; i++) {
+                const dateStr = `${year}-${monthNum.padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                const weekday = getWeekday(dateStr);
+                html += `<th style="border:1px solid #ddd; padding:4px 2px; text-align:center; font-weight:600; font-size:10px;">${i}<br>${weekday}</th>`;
+            }
+            html += `<th style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">소계</th></tr></thead><tbody>`;
+
+            Object.values(byEmployee).forEach((emp) => {
+                ['근무', '연장', '야간', '특근', '특잔', '조퇴'].forEach(shift => {
+                    const shiftData = emp[shift];
+                    let total = 0;
+                    html += `<tr><td style="border:1px solid #ddd; padding:6px; text-align:center;">${emp.name}</td>
+                            <td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">${shift}</td>`;
+                    for (let i = 0; i < 30; i++) {
+                        const val = shiftData[i] || 0;
+                        total += val;
+                        const bgColor = val > 0 ? '#fffbea' : 'transparent';
+                        html += `<td style="border:1px solid #ddd; padding:4px 2px; text-align:center; background:${bgColor};">${val > 0 ? val : '-'}</td>`;
+                    }
+                    html += `<td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">${total}</td></tr>`;
+                });
+
+                // 합계 행
+                let grandTotal = 0;
+                html += `<tr style="background:#f9f9f9;"><td style="border:1px solid #ddd; padding:6px; text-align:center;">${emp.name}</td>
+                        <td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">합계</td>`;
+                for (let day = 0; day < 30; day++) {
+                    let dayTotal = 0;
+                    ['근무', '연장', '야간', '특근', '특잔', '조퇴'].forEach(shift => {
+                        dayTotal += emp[shift][day] || 0;
+                    });
+                    html += `<td style="border:1px solid #ddd; padding:4px 2px; text-align:center; font-weight:600;">${dayTotal > 0 ? dayTotal : '-'}</td>`;
+                    grandTotal += dayTotal;
+                }
+                html += `<td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600; color:#4a90e2;">${grandTotal}</td></tr>`;
+                html += '<tr style="height:8px;"><td colspan="33"></td></tr>';
+            });
+
+            html += '</tbody></table>';
+            previewArea.innerHTML = html;
+        }
+
+        function editAttendance(id) {
+            const att = systemData.attendance.find(a => a.id === id);
+            if (!att) return;
+            document.getElementById('editModalTitle').textContent = '출퇴근 기록 수정';
+            document.getElementById('editModalBody').innerHTML = `
+                <div class="form-group"><label>날짜</label><input type="date" id="edit-t-date" value="${att.date}"></div>
+                <div class="form-group"><label>근무 형태</label>
+                    <select id="edit-t-shift">
+                        <option value="day" ${att.shift === 'day' ? 'selected' : ''}>주간 근무</option>
+                        <option value="night" ${att.shift === 'night' ? 'selected' : ''}>야간 근무</option>
+                        <option value="special" ${att.shift === 'special' ? 'selected' : ''}>특근</option>
+                        <option value="rest" ${att.shift === 'rest' ? 'selected' : ''}>주휴</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>연장근무 (시간)</label><input type="number" id="edit-t-overtime" value="${att.overtime || 0}" min="0" step="0.5"></div>
+                <div class="form-group"><label>비고</label><input type="text" id="edit-t-note" value="${escapeHtml(att.note)}"></div>
+                <button class="btn btn-primary" id="edit-t-save">저장</button>
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">취소</button>
+            `;
+            document.getElementById('edit-t-save').addEventListener('click', () => {
+                att.date = document.getElementById('edit-t-date').value;
+                att.shift = document.getElementById('edit-t-shift').value;
+                att.overtime = parseFloat(document.getElementById('edit-t-overtime').value) || 0;
+                att.note = document.getElementById('edit-t-note').value;
+                saveData();
+                closeModal('editModal');
+                toast('출퇴근 기록이 수정되었습니다.');
+            });
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        // ============ 추가 수당 ============
+        function addAllowance() {
+            const employeeId = parseInt(document.getElementById('allowance-employee').value);
+            const month = document.getElementById('allowance-month').value;
+            const name = document.getElementById('allowance-name').value.trim();
+            const amount = parseInt(document.getElementById('allowance-amount').value);
+            if (!employeeId || !month || !name || !amount) {
+                toast('근로자, 월, 수당 이름, 금액을 모두 입력하세요.', 'error');
+                return;
+            }
+            systemData.allowances.push({ id: Date.now(), employeeId, month, name, amount });
+            saveData();
+            document.getElementById('allowance-name').value = '';
+            document.getElementById('allowance-amount').value = '';
+            toast('수당이 추가되었습니다.');
+        }
+
+        function renderAllowanceList() {
+            const box = document.getElementById('allowance-list');
+            const month = document.getElementById('payroll-month')?.value || '';
+            const list = systemData.allowances.filter(a => !month || a.month === month);
+            if (list.length === 0) { box.innerHTML = '<span style="color:#999;">이번 달 등록된 추가 수당이 없습니다.</span>'; return; }
+            box.innerHTML = '<strong>등록된 수당 (' + (month || '전체') + '):</strong><br>';
+            list.forEach(a => {
+                const emp = systemData.employees.find(e => e.id === a.employeeId);
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:8px; margin-top:5px;';
+                row.innerHTML = `<span>• ${emp ? escapeHtml(emp.name) : '?'} — ${escapeHtml(a.name)}: ${a.amount.toLocaleString()}원 (${a.month})</span>`;
+                const del = mkBtn('삭제', 'btn-danger', () => {
+                    systemData.allowances = systemData.allowances.filter(x => x.id !== a.id);
+                    saveData();
+                    toast('수당이 삭제되었습니다.');
+                });
+                del.style.margin = '0';
+                row.appendChild(del);
+                box.appendChild(row);
+            });
+        }
+
+        // ============ 급여 계산 ============
+        function computeDeductions(gross, insurance) {
+            const s = systemData.settings;
+            if (insurance === 'freelance') {
+                const total = Math.round(gross * s.rateFreelance / 100);
+                return { items: [['사업소득세 등 (' + s.rateFreelance + '%)', total]], total };
+            }
+            const pension = Math.round(gross * s.ratePension / 100);
+            const health = Math.round(gross * s.rateHealth / 100);
+            const care = Math.round(health * s.rateCare / 100);
+            const employment = Math.round(gross * s.rateEmployment / 100);
+            const total = pension + health + care + employment;
+            return {
+                items: [
+                    ['국민연금 (' + s.ratePension + '%)', pension],
+                    ['건강보험 (' + s.rateHealth + '%)', health],
+                    ['장기요양', care],
+                    ['고용보험 (' + s.rateEmployment + '%)', employment]
+                ],
+                total
+            };
+        }
+
+        function computePayrollFor(emp, month) {
+            const s = systemData.settings;
+            const company = systemData.companies.find(c => c.id == emp.company);
+            const records = systemData.attendance.filter(a => a.employeeId === emp.id && a.date.startsWith(month));
+            let regularHours = 0, overtimeHours = 0, nightHours = 0, specialHours = 0, specialOvertimeHours = 0, weeklyRestCount = 0, workDays = 0;
+            
+            records.forEach(att => {
+                // shift 값이 한국어 ('근무', '연장', '야간', '특근', '특잔', '주휴')
+                const hours = att.overtime || 0; // overtime 필드에 시간이 저장됨
+                
+                if (att.shift === '주휴') { 
+                    weeklyRestCount++; 
+                    return; 
+                }
+                if (att.shift === '근무') {
+                    regularHours += hours;
+                    workDays++;
+                } else if (att.shift === '연장') {
+                    overtimeHours += hours;
+                } else if (att.shift === '야간') {
+                    nightHours += hours;
+                    workDays++;
+                } else if (att.shift === '특근') {
+                    specialHours += hours;
+                    workDays++;
+                } else if (att.shift === '특잔') {
+                    specialOvertimeHours += hours;
+                    workDays++;
+                }
+            });
+            
+            const w = emp.hourlyWage;
+            const baseSalary = Math.round(regularHours * w);
+            const overtimePay = Math.round(overtimeHours * w * s.overtimeMultiplier);
+            const nightPay = Math.round(nightHours * w * 0.5); // 야간수당 0.5배
+            const specialPay = Math.round(specialHours * w * s.specialMultiplier);
+            const specialOvertimePay = Math.round(specialOvertimeHours * w * 2.0); // 특잔은 2.0배
+            const weeklyRestPay = Math.round(weeklyRestCount * w * s.weeklyRestMultiplier);
+            const allowances = systemData.allowances.filter(a => a.employeeId === emp.id && a.month === month);
+            const allowanceTotal = allowances.reduce((sum, a) => sum + a.amount, 0);
+            const gross = baseSalary + overtimePay + nightPay + specialPay + specialOvertimePay + weeklyRestPay + allowanceTotal;
+            const deductions = computeDeductions(gross, emp.insurance || 'four');
+            
+            return {
+                employeeId: emp.id, employeeName: emp.name, company: emp.company,
+                insurance: emp.insurance || 'four',
+                bankAccount: emp.bankAccount || '', residentId: emp.residentId || '',
+                hourlyWage: w, workDays, regularHours, overtimeHours, nightHours, specialHours, specialOvertimeHours, weeklyRestCount,
+                baseSalary, overtimePay, nightPay, specialPay, specialOvertimePay, weeklyRestPay,
+                allowances, allowanceTotal,
+                gross, deductionItems: deductions.items, deductionTotal: deductions.total,
+                netSalary: gross - deductions.total
+            };
+        }
+
+        function calculatePayroll() {
+            const month = document.getElementById('payroll-month').value;
+            if (!month) { toast('계산 월을 선택하세요.', 'error'); return; }
+            currentPayrollMonth = month;
+            // 해당 월에 기록이 있는 근로자는 퇴사자여도 포함 (마지막 정산)
+            currentPayrollData = systemData.employees
+                .filter(emp => emp.status === 'active' || systemData.attendance.some(a => a.employeeId === emp.id && a.date.startsWith(month)))
+                .map(emp => computePayrollFor(emp, month));
+            renderAllowanceList();
+            loadPayroll();
+        }
+
+        function loadPayroll() {
+            const tbody = document.getElementById('payroll-table');
+            const nameFilter = document.getElementById('payroll-search-name').value.trim().toLowerCase();
+            const companyFilter = document.getElementById('payroll-search-company').value;
+            tbody.innerHTML = '';
+            const list = currentPayrollData.filter(p =>
+                (!nameFilter || p.employeeName.toLowerCase().includes(nameFilter)) &&
+                (!companyFilter || p.company == companyFilter)
+            );
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#999;">계산된 급여가 없습니다. [급여 계산]을 눌러주세요.</td></tr>';
+                return;
+            }
+            list.forEach(p => {
+                const company = systemData.companies.find(c => c.id == p.company);
+                const idx = currentPayrollData.indexOf(p);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHtml(p.employeeName)}</td>
+                    <td>${company ? escapeHtml(company.name) : '-'}</td>
+                    <td>${p.workDays}일</td>
+                    <td>${p.baseSalary.toLocaleString()}</td>
+                    <td>${p.overtimePay.toLocaleString()}</td>
+                    <td>${p.nightPay.toLocaleString()}</td>
+                    <td>${p.specialPay.toLocaleString()}</td>
+                    <td>${p.specialOvertimePay.toLocaleString()}</td>
+                    <td>${p.weeklyRestPay.toLocaleString()}</td>
+                    <td>${p.allowanceTotal.toLocaleString()}</td>
+                    <td><strong>${p.gross.toLocaleString()}원</strong></td>`;
+                const td = document.createElement('td');
+                td.style.whiteSpace = 'nowrap';
+                td.appendChild(mkBtn('상세', 'btn-secondary', () => showPayrollDetail(idx)));
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function showPayrollDetail(index) {
+            const p = currentPayrollData[index];
+            const s = systemData.settings;
+            let allowanceRows = '';
+            p.allowances.forEach(a => {
+                allowanceRows += `<div style="display:flex; justify-content:space-between;"><span>+ ${escapeHtml(a.name)}</span><span>${a.amount.toLocaleString()}원</span></div>`;
+            });
+            document.getElementById('payrollModalBody').innerHTML = `
+                <div style="background:#f9f9f9; padding:14px; border-radius:6px; font-size:13px; line-height:2;">
+                    <strong style="font-size:15px;">${escapeHtml(p.employeeName)} — ${currentPayrollMonth} 급여명세</strong>
+                    <div style="display:flex; justify-content:space-between;"><span>공제 구분</span><span>${p.insurance === 'four' ? '4대보험' : '3.3% 공제'}</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>시급 / 근무일수</span><span>${p.hourlyWage.toLocaleString()}원 / ${p.workDays}일</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>기본급 (${p.regularHours.toFixed(1)}h)</span><span>${p.baseSalary.toLocaleString()}원</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>연장수당 (${p.overtimeHours.toFixed(1)}h × ${s.overtimeMultiplier})</span><span>${p.overtimePay.toLocaleString()}원</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>야간수당 (${p.nightHours.toFixed(1)}h × 0.5)</span><span>${p.nightPay.toLocaleString()}원</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>특근수당 (${p.specialHours.toFixed(1)}h × ${s.specialMultiplier})</span><span>${p.specialPay.toLocaleString()}원</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>특잔수당 (${p.specialOvertimeHours.toFixed(1)}h × 2.0)</span><span>${p.specialOvertimePay.toLocaleString()}원</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>주휴수당 (${p.weeklyRestCount}회)</span><span>${p.weeklyRestPay.toLocaleString()}원</span></div>
+                    ${allowanceRows}
+                    <div style="display:flex; justify-content:space-between; border-top:2px solid #333; margin-top:8px; padding-top:8px; font-weight:bold; font-size:15px;">
+                        <span>월예상급여</span><span>${p.gross.toLocaleString()}원</span>
+                    </div>
+                    ${p.bankAccount ? `<div style="font-size:12px; color:#666; margin-top:6px;">입금 계좌: ${escapeHtml(p.bankAccount)}</div>` : ''}
+                </div>
+            `;
+            document.getElementById('payrollDetailModal').classList.add('show');
+        }
+
+        // ============ 엑셀 내보내기 ============
+        function getWeekday(dateStr) {
+            const [year, monthStr, dayStr] = dateStr.split('-');
+            const date = new Date(parseInt(year), parseInt(monthStr) - 1, parseInt(dayStr));
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            return days[date.getDay()];
+        }
+
+        function exportAttendanceExcel() {
+            if (typeof XLSX === 'undefined') { toast('엑셀 라이브러리 로딩 실패. 인터넷 연결을 확인하세요.', 'error'); return; }
+            const month = document.getElementById('attendance-month').value;
+            const records = systemData.attendance.filter(a => a.date.startsWith(month));
+            
+            if (records.length === 0) { toast('해당 월의 출퇴근 기록이 없습니다.', 'error'); return; }
+
+            // 근로자별 데이터 구성
+            const byEmployee = {};
+            systemData.employees.forEach(emp => {
+                if (emp.status === 'active') {
+                    byEmployee[emp.id] = {
+                        name: emp.name,
+                        근무: Array(30).fill(0),
+                        연장: Array(30).fill(0),
+                        야간: Array(30).fill(0),
+                        특근: Array(30).fill(0),
+                        특잔: Array(30).fill(0),
+                        조퇴: Array(30).fill(0)
+                    };
+                }
+            });
+
+            // 출퇴근 기록 입력
+            records.forEach(rec => {
+                if (byEmployee[rec.employeeId]) {
+                    const day = parseInt(rec.date.split('-')[2]) - 1;
+                    if (day >= 0 && day < 30) {
+                        // shift: '근무', '연장', '야간', '특근', '특잔', '조퇴'
+                        const shiftType = rec.shift;
+                        const hours = rec.overtime || 0;
+                        if (shiftType && byEmployee[rec.employeeId][shiftType] !== undefined) {
+                            byEmployee[rec.employeeId][shiftType][day] = hours;
+                        }
+                    }
+                }
+            });
+
+            // 엑셀 파일 생성
+            const wb = XLSX.utils.book_new();
+            const [year, monthNum] = month.split('-');
+            const monthTitle = `${year}년 ${parseInt(monthNum)}월 출퇴근 기록`;
+            
+            Object.values(byEmployee).forEach((emp) => {
+                const sheetData = [];
+                
+                // 제목 행
+                sheetData.push([monthTitle]);
+                sheetData.push([]);
+                
+                // 날짜 헤더 (1~30일)
+                const dateHeader = ['이름', '근무형태'];
+                for (let i = 1; i <= 30; i++) {
+                    dateHeader.push(i.toString());
+                }
+                dateHeader.push('소계');
+                sheetData.push(dateHeader);
+                
+                // 요일 헤더
+                const weekdayHeader = ['', ''];
+                for (let i = 1; i <= 30; i++) {
+                    const dateStr = `${year}-${monthNum.padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                    weekdayHeader.push(getWeekday(dateStr));
+                }
+                weekdayHeader.push('');
+                sheetData.push(weekdayHeader);
+                
+                // 근무형태별 행
+                ['근무', '연장', '야간', '특근', '특잔', '조퇴'].forEach(shift => {
+                    const row = [emp.name, shift];
+                    const shiftData = emp[shift];
+                    let total = 0;
+                    for (let i = 0; i < 30; i++) {
+                        const val = shiftData[i] || 0;
+                        row.push(val);
+                        total += val;
+                    }
+                    row.push(total);
+                    sheetData.push(row);
+                });
+                
+                // 합계 행
+                const totalRow = [emp.name, '합계'];
+                let grandTotal = 0;
+                for (let day = 0; day < 30; day++) {
+                    let dayTotal = 0;
+                    ['근무', '연장', '야간', '특근', '특잔', '조퇴'].forEach(shift => {
+                        dayTotal += emp[shift][day] || 0;
+                    });
+                    totalRow.push(dayTotal);
+                    grandTotal += dayTotal;
+                }
+                totalRow.push(grandTotal);
+                sheetData.push(totalRow);
+
+                const ws = XLSX.utils.aoa_to_sheet(sheetData);
+                ws['!cols'] = [{ wch: 12 }, { wch: 8 }, ...Array(30).fill({ wch: 5 }), { wch: 8 }];
+                XLSX.utils.book_append_sheet(wb, ws, emp.name.slice(0, 10));
+            });
+
+            XLSX.writeFile(wb, `출퇴근기록_${month}.xlsx`);
+            toast('월간 출퇴근 기록이 다운로드되었습니다.', 'success');
+        }
+
+        // ============ 대시보드 ============
+        function updateDashboard() {
+            const apps = systemData.applicants;
+            document.getElementById('stat-applicant').textContent = apps.filter(a => a.status === 'applicant').length;
+            document.getElementById('stat-pending').textContent = apps.filter(a => a.status === 'pending').length;
+            document.getElementById('stat-employees').textContent = systemData.employees.filter(e => e.status === 'active').length;
+            document.getElementById('stat-resigned').textContent = systemData.employees.filter(e => e.status === 'resigned').length;
+            document.getElementById('stat-companies').textContent = systemData.companies.length;
+
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const savedMonth = currentPayrollMonth;
+            currentPayrollMonth = currentMonth;
+            let totalNet = 0;
+            const perCompany = {};
+            systemData.employees.filter(e => e.status === 'active').forEach(emp => {
+                const p = computePayrollFor(emp, currentMonth);
+                totalNet += p.netSalary;
+                perCompany[emp.company] = (perCompany[emp.company] || 0) + p.netSalary;
+            });
+            currentPayrollMonth = savedMonth;
+            document.getElementById('stat-payroll').textContent = totalNet.toLocaleString() + '원';
+
+            const tbody = document.getElementById('company-stats-body');
+            tbody.innerHTML = '';
+            if (systemData.companies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">등록된 업체가 없습니다.</td></tr>';
+                return;
+            }
+            systemData.companies.forEach(c => {
+                const count = systemData.employees.filter(e => e.company == c.id && e.status === 'active').length;
+                const pay = perCompany[c.id] || 0;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${escapeHtml(c.name)}</td><td>${workTypeLabel(c.workType)}</td><td>${c.payday ? '매월 ' + c.payday + '일' : '-'}</td><td>${count}명</td><td>${pay.toLocaleString()}원</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ============ 백업/복원/삭제 ============
+        function downloadDataBackup() {
+            const json = JSON.stringify({ timestamp: new Date().toISOString(), data: systemData }, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `hr-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast('백업 파일이 다운로드되었습니다.');
+        }
+
+        function restoreBackup(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    const data = parsed.data || parsed;
+                    if (!data.applicants || !data.employees) throw new Error('올바른 백업 파일이 아닙니다.');
+                    systemData = {
+                        ...JSON.parse(JSON.stringify(DEFAULT_DATA)),
+                        ...data,
+                        allowances: data.allowances || [],
+                        settings: { ...DEFAULT_DATA.settings, ...(data.settings || {}) }
+                    };
+                    systemData.employees.forEach(e2 => {
+                        if (!e2.status) e2.status = 'active';
+                        if (!e2.insurance) e2.insurance = 'four';
+                    });
+                    saveData();
+                    loadSettingsForm();
+                    toast('백업이 복원되었습니다.');
+                } catch (err) {
+                    toast('복원 실패: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        function clearAllData() {
+            confirmAction('정말 모든 데이터를 삭제하시겠습니까? 되돌릴 수 없습니다.', () => {
+                localStorage.removeItem('hrSystemData');
+                systemData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+                saveData();
+                loadSettingsForm();
+                toast('모든 데이터가 삭제되었습니다.', 'info');
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
