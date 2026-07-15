@@ -200,6 +200,7 @@
                 <div class="nav-item active" data-tab="dashboard" onclick="switchTab(this)">📊 대시보드</div>
                 <div class="nav-item" data-tab="applicants" onclick="switchTab(this)">👥 지원자 관리</div>
                 <div class="nav-item" data-tab="employees" onclick="switchTab(this)">👔 근로자 관리</div>
+                <div class="nav-item" data-tab="resigned-employees" onclick="switchTab(this)">📋 퇴사자 관리</div>
                 <div class="nav-item" data-tab="companies" onclick="switchTab(this)">🏢 업체 관리</div>
                 <div class="nav-item" data-tab="attendance" onclick="switchTab(this)">⏱️ 출퇴근 관리</div>
                 <div class="nav-item" data-tab="payroll" onclick="switchTab(this)">💰 급여 관리</div>
@@ -216,12 +217,12 @@
                         <div class="card"><div class="card-title">재직 근로자</div><div class="card-value" id="stat-employees">0</div></div>
                         <div class="card"><div class="card-title">퇴사자</div><div class="card-value" id="stat-resigned">0</div></div>
                         <div class="card"><div class="card-title">등록 업체</div><div class="card-value" id="stat-companies">0</div></div>
-                        <div class="card"><div class="card-title">이번달 예상 급여 (실지급)</div><div class="card-value" id="stat-payroll" style="font-size:19px;">0원</div></div>
+                        <div class="card"><div class="card-title">이번달 예상 급여</div><div class="card-value" id="stat-payroll" style="font-size:19px;">0원</div></div>
                     </div>
                     <h3>👥 업체별 현황</h3>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>업체명</th><th>근무형태</th><th>급여일</th><th>재직 인원</th><th>월 예상 급여(실지급)</th></tr></thead>
+                            <thead><tr><th>업체명</th><th>근무형태</th><th>급여일</th><th>재직 인원</th><th>월 예상 급여</th></tr></thead>
                             <tbody id="company-stats-body"></tbody>
                         </table>
                     </div>
@@ -299,6 +300,7 @@
                             <div class="form-group"><label>계좌번호 (은행 포함)</label><input type="text" id="employee-bank" placeholder="예: 국민 123456-01-123456"></div>
                         </div>
                         <div class="form-group"><label>채용일</label><input type="date" id="employee-hire-date"></div>
+                        <div class="form-group"><label>📝 근로자 메모</label><textarea id="employee-memo" placeholder="특이사항, 계약 조건 등 메모"></textarea></div>
                         <button class="btn btn-primary" onclick="addEmployee()">➕ 근로자 추가</button>
                     </div>
 
@@ -320,8 +322,27 @@
 
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>이름</th><th>연락처</th><th>소속 업체</th><th>직무</th><th>시급</th><th>공제</th><th>주민번호</th><th>계좌</th><th>상태</th><th>작업</th></tr></thead>
+                            <thead><tr><th>이름</th><th>연락처</th><th>소속 업체</th><th>직무</th><th>시급</th><th>공제</th><th>메모</th><th>상태</th><th>작업</th></tr></thead>
                             <tbody id="employees-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== 퇴사자 관리 ===================== -->
+                <div id="resigned-employees" class="section">
+                    <h2>📋 퇴사자 관리</h2>
+                    <div class="info-box">💡 퇴사 처리된 근로자 정보를 확인할 수 있습니다.</div>
+
+                    <div class="search-bar">
+                        <input type="text" id="resigned-search-name" placeholder="이름 검색" oninput="loadResignedEmployees()">
+                        <select id="resigned-search-company" onchange="loadResignedEmployees()"><option value="">업체 전체</option></select>
+                        <button class="btn btn-secondary btn-small" onclick="resetResignedSearch()" style="margin:0;">초기화</button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>이름</th><th>연락처</th><th>소속 업체</th><th>시급</th><th>퇴사일</th><th>메모</th><th>작업</th></tr></thead>
+                            <tbody id="resigned-employees-table"></tbody>
                         </table>
                     </div>
                 </div>
@@ -329,7 +350,7 @@
                 <!-- ===================== 업체 관리 ===================== -->
                 <div id="companies" class="section">
                     <h2>🏢 업체 관리</h2>
-                    <div class="info-box">💡 업체의 근무형태·근무시간·점심시간·급여일을 설정하면 소속 근로자의 급여 계산에 자동 적용됩니다.</div>
+                    <div class="info-box">💡 업체별 근무형태를 자유롭게 추가할 수 있습니다. 추가한 근무형태는 출퇴근 등록 시 해당 업체 근로자에게 자동 표시됩니다.</div>
                     <div class="form-section">
                         <h3 style="margin-top:0;">업체 추가</h3>
                         <div class="form-row">
@@ -343,24 +364,39 @@
                         <div class="form-group"><label>주소</label><input type="text" id="company-address"></div>
                         <div class="form-row">
                             <div class="form-group"><label>급여일 (매월 N일)</label><input type="number" id="company-payday" min="1" max="31" placeholder="예: 10"></div>
+                            <div class="form-group"><label>기본 시급 (원)</label><input type="number" id="company-hourly-wage" placeholder="예: 10030"></div>
+                        </div>
+                        <div class="form-row">
                             <div class="form-group"><label>점심/휴게 시간 (분)</label><input type="number" id="company-lunch-time" value="60" min="0"></div>
                         </div>
                         <div class="form-group"><label>📝 업체 메모</label><textarea id="company-memo" placeholder="급여 관련 특이사항, 계약 조건 등"></textarea></div>
                         <h3>근무 시간 설정</h3>
                         <div class="form-group"><label>근무 형태</label>
-                            <select id="company-work-type">
-                                <option value="day">주간근무</option>
-                                <option value="night">야간근무</option>
-                                <option value="shift">주야간 2교대</option>
-                            </select>
+                            <div style="display:flex; gap:16px; margin-top:6px;">
+                                <label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="company-has-day" checked> 주간근무</label>
+                                <label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="company-has-night" checked> 야간근무</label>
+                            </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group"><label>주간 출근</label><input type="time" id="company-start-time-day" value="09:00"></div>
-                            <div class="form-group"><label>주간 퇴근</label><input type="time" id="company-end-time-day" value="18:00"></div>
+                        <div id="day-work-section" style="margin-top:12px;">
+                            <strong style="font-size:13px;">주간 근무시간</strong>
+                            <div class="form-row" style="margin-top:6px;">
+                                <div class="form-group"><label>출근</label><input type="time" id="company-start-time-day" value="09:00"></div>
+                                <div class="form-group"><label>퇴근</label><input type="time" id="company-end-time-day" value="18:00"></div>
+                            </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group"><label>야간 출근</label><input type="time" id="company-start-time-night" value="18:00"></div>
-                            <div class="form-group"><label>야간 퇴근</label><input type="time" id="company-end-time-night" value="09:00"></div>
+                        <div id="night-work-section" style="margin-top:12px;">
+                            <strong style="font-size:13px;">야간 근무시간</strong>
+                            <div class="form-row" style="margin-top:6px;">
+                                <div class="form-group"><label>출근</label><input type="time" id="company-start-time-night" value="18:00"></div>
+                                <div class="form-group"><label>퇴근</label><input type="time" id="company-end-time-night" value="09:00"></div>
+                            </div>
+                        </div>
+                        <h3>추가 근무형태</h3>
+                        <div class="info-box" style="margin-bottom:8px;">💡 기본 항목(근무, 연장, 야간, 심야, 특근, 특잔)외 추가 근무형태를 등록할 수 있습니다.</div>
+                        <div id="company-custom-shifts" style="margin-bottom:8px;"></div>
+                        <div class="form-row" style="align-items:flex-end;">
+                            <div class="form-group" style="flex:2;"><label>근무형태명</label><input type="text" id="new-shift-name" placeholder="예: 오전, PM근무"></div>
+                            <div class="form-group" style="flex:0 0 auto; padding-top:24px;"><button class="btn btn-secondary btn-small" onclick="addCustomShift('company-custom-shifts', 'new-shift-name')">➕ 추가</button></div>
                         </div>
                         <button class="btn btn-primary" onclick="addCompany()">➕ 업체 추가</button>
                     </div>
@@ -390,12 +426,13 @@
                                     <option value="근무">근무</option>
                                     <option value="연장">연장</option>
                                     <option value="야간">야간</option>
+                                    <option value="심야">심야</option>
                                     <option value="특근">특근</option>
                                     <option value="특잔">특잔</option>
                                     <option value="주휴">주휴</option>
                                 </select>
                             </div>
-                            <div class="form-group"><label>시간 *</label><input type="number" id="attendance-overtime" value="8" min="0" step="0.5"></div>
+                            <div class="form-group"><label>시간 *</label><input type="number" id="attendance-overtime" value="0" min="0" step="0.5" placeholder="시간 직접 입력"></div>
                         </div>
                         <div class="form-group"><label>비고</label><input type="text" id="attendance-note"></div>
                         <button class="btn btn-primary" onclick="addAttendance()">📝 기록 저장</button>
@@ -415,6 +452,11 @@
                     </div>
 
                     <h3 style="margin-top:24px;">📊 월간 출퇴근 현황 (미리보기)</h3>
+                    <div class="search-bar">
+                        <select id="preview-employee-filter" onchange="renderAttendancePreview(document.getElementById('attendance-month').value)">
+                            <option value="">모든 근무자</option>
+                        </select>
+                    </div>
                     <div id="attendance-preview-area" style="overflow-x:auto;"></div>
                 </div>
 
@@ -447,7 +489,7 @@
 
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>근로자명</th><th>업체</th><th>일수</th><th>기본급</th><th>연장</th><th>야간</th><th>특근</th><th>특잔</th><th>주휴</th><th>추가수당</th><th><strong>월예상급여</strong></th><th>작업</th></tr></thead>
+                            <thead><tr><th>근로자명</th><th>업체</th><th>일수</th><th>기본급</th><th>연장</th><th>심야</th><th>특근</th><th>특잔</th><th>주휴</th><th>추가수당</th><th><strong>월예상급여</strong></th><th>작업</th></tr></thead>
                             <tbody id="payroll-table"></tbody>
                         </table>
                     </div>
@@ -480,7 +522,7 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group"><label>주휴수당 (시급 × N시간)</label><input type="number" id="setting-weekly-rest-multiplier" step="0.5"></div>
-                            <div class="form-group"><label>1일 기본 근무 상한 (시간)</label><input type="number" id="setting-base-hours" step="0.5"></div>
+                            <div class="form-group"><label>심야수당 추가임금률 (시급의 N배)</label><input type="number" id="setting-midnight-rate" step="0.1" placeholder="기본값 0.5"></div>
                         </div>
                     </div>
 
@@ -576,7 +618,7 @@
             settings: {
                 mainTitle: '🚀 아웃소싱 HR 통합 관리 시스템',
                 mainSubtitle: '지원자 • 채용 • 출퇴근 • 급여 - 모든 업무 한곳에서 관리',
-                overtimeMultiplier: 1.5, specialMultiplier: 2, weeklyRestMultiplier: 8, baseHours: 8,
+                overtimeMultiplier: 1.5, specialMultiplier: 2, weeklyRestMultiplier: 8, midnightRate: 0.5,
                 platforms: ['사람인', '잡코리아', '알바몬', '알바천국', '벼룩시장', '기타'],
                 ratePension: 4.5, rateHealth: 3.545, rateCare: 12.95, rateEmployment: 0.9, rateFreelance: 3.3
             }
@@ -636,6 +678,14 @@
                         if (!e.status) e.status = 'active';
                         if (!e.insurance) e.insurance = 'four';
                     });
+                    // 기존 업체 마이그레이션: customShifts 없는 업체
+                    systemData.companies.forEach(c => {
+                        if (!c.customShifts) c.customShifts = [];
+                        if (typeof c.workType !== 'string') c.workType = c.workType === 'night' ? '야간' : c.workType === 'shift' ? '주야2교대' : '주간';
+                    });
+                    // 설정 마이그레이션
+                    if (!systemData.settings.midnightRate) systemData.settings.midnightRate = 0.5;
+                    delete systemData.settings.baseHours; // 더 이상 사용하지 않음
                 }
             } catch (e) { console.error(e); }
         }
@@ -669,6 +719,7 @@
             updateAllSelects();
             loadApplicants();
             loadEmployees();
+            loadResignedEmployees();
             loadCompanies();
             loadAttendanceByMonth();
             renderAllowanceList();
@@ -696,7 +747,7 @@
             document.getElementById('setting-overtime-multiplier').value = s.overtimeMultiplier;
             document.getElementById('setting-special-multiplier').value = s.specialMultiplier;
             document.getElementById('setting-weekly-rest-multiplier').value = s.weeklyRestMultiplier;
-            document.getElementById('setting-base-hours').value = s.baseHours;
+            document.getElementById('setting-midnight-rate').value = s.midnightRate;
             document.getElementById('setting-rate-pension').value = s.ratePension;
             document.getElementById('setting-rate-health').value = s.rateHealth;
             document.getElementById('setting-rate-care').value = s.rateCare;
@@ -712,7 +763,7 @@
             s.overtimeMultiplier = parseFloat(document.getElementById('setting-overtime-multiplier').value) || 1.5;
             s.specialMultiplier = parseFloat(document.getElementById('setting-special-multiplier').value) || 2;
             s.weeklyRestMultiplier = parseFloat(document.getElementById('setting-weekly-rest-multiplier').value) || 8;
-            s.baseHours = parseFloat(document.getElementById('setting-base-hours').value) || 8;
+            s.midnightRate = parseFloat(document.getElementById('setting-midnight-rate').value) || 0.5;
             s.ratePension = parseFloat(document.getElementById('setting-rate-pension').value) || 0;
             s.rateHealth = parseFloat(document.getElementById('setting-rate-health').value) || 0;
             s.rateCare = parseFloat(document.getElementById('setting-rate-care').value) || 0;
@@ -833,6 +884,7 @@
                 { el: document.getElementById('employee-company'), first: '업체 선택' },
                 { el: document.getElementById('applicant-company'), first: '업체 선택' },
                 { el: document.getElementById('emp-search-company'), first: '업체 전체' },
+                { el: document.getElementById('resigned-search-company'), first: '업체 전체' },
                 { el: document.getElementById('payroll-search-company'), first: '업체 전체' }
             ];
             companySelects.forEach(({ el, first }) => {
@@ -1090,10 +1142,11 @@
                 bankAccount: document.getElementById('employee-bank').value.trim(),
                 position: document.getElementById('employee-position').value.trim(),
                 hireDate: document.getElementById('employee-hire-date').value,
+                memo: document.getElementById('employee-memo').value.trim(),
                 status: 'active', resignDate: ''
             });
             saveData();
-            ['employee-name','employee-phone','employee-hourly-wage','employee-position','employee-resident-id','employee-bank'].forEach(id => document.getElementById(id).value = '');
+            ['employee-name','employee-phone','employee-hourly-wage','employee-position','employee-resident-id','employee-bank','employee-memo'].forEach(id => document.getElementById(id).value = '');
             toast('근로자가 추가되었습니다.');
         }
 
@@ -1126,7 +1179,7 @@
             const tbody = document.getElementById('employees-table');
             tbody.innerHTML = '';
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#999;">근로자가 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">근로자가 없습니다.</td></tr>';
                 return;
             }
             list.forEach(emp => {
@@ -1144,8 +1197,7 @@
                     <td>${escapeHtml(emp.position) || '-'}</td>
                     <td>${emp.hourlyWage.toLocaleString()}원</td>
                     <td>${insBadge}</td>
-                    <td class="sensitive">${maskResident(emp.residentId)}</td>
-                    <td class="sensitive">${escapeHtml(emp.bankAccount) || '-'}</td>
+                    <td>${emp.memo ? '<div class="memo-box" style="font-size:11px;">' + escapeHtml(emp.memo) + '</div>' : '-'}</td>
                     <td>${statusBadge}</td>`;
                 const actionTd = document.createElement('td');
                 actionTd.style.whiteSpace = 'nowrap';
@@ -1193,6 +1245,56 @@
             document.getElementById('editModal').classList.add('show');
         }
 
+        function loadResignedEmployees() {
+            const name = document.getElementById('resigned-search-name').value.trim().toLowerCase();
+            const companyFilter = document.getElementById('resigned-search-company').value;
+            const list = systemData.employees.filter(e =>
+                e.status === 'resigned' &&
+                (!name || e.name.toLowerCase().includes(name)) &&
+                (!companyFilter || e.company == companyFilter)
+            );
+            const tbody = document.getElementById('resigned-employees-table');
+            tbody.innerHTML = '';
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">퇴사자가 없습니다.</td></tr>';
+                return;
+            }
+            list.forEach(emp => {
+                const company = systemData.companies.find(c => c.id == emp.company);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHtml(emp.name)}</td><td>${escapeHtml(emp.phone)}</td>
+                    <td>${company ? escapeHtml(company.name) : '-'}</td>
+                    <td>${emp.hourlyWage.toLocaleString()}원</td>
+                    <td>${emp.resignDate || '-'}</td>
+                    <td>${emp.memo ? '<div class="memo-box" style="font-size:11px;">' + escapeHtml(emp.memo) + '</div>' : '-'}</td>`;
+                const actionTd = document.createElement('td');
+                actionTd.style.whiteSpace = 'nowrap';
+                actionTd.appendChild(mkBtn('복직', 'btn-success', () => {
+                    emp.status = 'active'; emp.resignDate = '';
+                    saveData();
+                    toast(emp.name + ' 님이 재직 상태로 변경되었습니다.');
+                }));
+                actionTd.appendChild(mkBtn('삭제', 'btn-danger', () => {
+                    confirmAction(`'${emp.name}' 퇴사자를 완전히 삭제하시겠습니까? 출퇴근·수당 기록도 함께 삭제됩니다.`, () => {
+                        systemData.employees = systemData.employees.filter(e => e.id !== emp.id);
+                        systemData.attendance = systemData.attendance.filter(a => a.employeeId !== emp.id);
+                        systemData.allowances = systemData.allowances.filter(a => a.employeeId !== emp.id);
+                        saveData();
+                        toast('퇴사자가 삭제되었습니다.');
+                    });
+                }));
+                tr.appendChild(actionTd);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resetResignedSearch() {
+            document.getElementById('resigned-search-name').value = '';
+            document.getElementById('resigned-search-company').value = '';
+            loadResignedEmployees();
+        }
+
         function editEmployee(id) {
             const emp = systemData.employees.find(e => e.id === id);
             if (!emp) return;
@@ -1224,6 +1326,7 @@
                     <div class="form-group"><label>직급/직무</label><input type="text" id="edit-e-position" value="${escapeHtml(emp.position)}"></div>
                     <div class="form-group"><label>채용일</label><input type="date" id="edit-e-date" value="${emp.hireDate || ''}"></div>
                 </div>
+                <div class="form-group"><label>📝 근로자 메모</label><textarea id="edit-e-memo" placeholder="특이사항, 계약 조건 등 메모">${escapeHtml(emp.memo || '')}</textarea></div>
                 <button class="btn btn-primary" id="edit-e-save">저장</button>
                 <button class="btn btn-secondary" onclick="closeModal('editModal')">취소</button>
             `;
@@ -1237,6 +1340,7 @@
                 emp.bankAccount = document.getElementById('edit-e-bank').value.trim();
                 emp.position = document.getElementById('edit-e-position').value;
                 emp.hireDate = document.getElementById('edit-e-date').value;
+                emp.memo = document.getElementById('edit-e-memo').value.trim();
                 saveData();
                 closeModal('editModal');
                 toast('근로자 정보가 수정되었습니다.');
@@ -1245,9 +1349,44 @@
         }
 
         // ============ 업체 ============
+        // 커스텀 근무형태 임시 저장용
+        let pendingCustomShifts = [];
+
+        function addCustomShift(containerId, nameId) {
+            const name = document.getElementById(nameId).value.trim();
+            if (!name) { toast('근무형태명을 입력하세요.', 'error'); return; }
+            pendingCustomShifts.push({ name });
+            renderCustomShiftTags(containerId);
+            document.getElementById(nameId).value = '';
+        }
+
+        function renderCustomShiftTags(containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = pendingCustomShifts.map((s, i) =>
+                `<span style="display:inline-flex;align-items:center;gap:4px;background:#e0f0ff;border:1px solid #90c0f0;border-radius:12px;padding:3px 10px;margin:3px;font-size:12px;">
+                    ${escapeHtml(s.name)}
+                    <button onclick="removeCustomShift(${i}, '${containerId}')" style="border:none;background:none;cursor:pointer;color:#dc2626;font-size:14px;line-height:1;">×</button>
+                </span>`
+            ).join('');
+        }
+
+        function removeCustomShift(index, containerId) {
+            pendingCustomShifts.splice(index, 1);
+            renderCustomShiftTags(containerId);
+        }
+
         function addCompany() {
             const name = document.getElementById('company-name').value.trim();
             if (!name) { toast('업체명은 필수입니다.', 'error'); return; }
+            
+            const hasDay = document.getElementById('company-has-day').checked;
+            const hasNight = document.getElementById('company-has-night').checked;
+            let workType = '';
+            if (hasDay && hasNight) workType = '주야간2교대';
+            else if (hasDay) workType = '주간';
+            else if (hasNight) workType = '야간';
+            else { toast('최소 하나의 근무형태를 선택하세요.', 'error'); return; }
+            
             systemData.companies.push({
                 id: Date.now(), name,
                 contactName: document.getElementById('company-contact-name').value.trim(),
@@ -1255,16 +1394,24 @@
                 email: document.getElementById('company-email').value.trim(),
                 address: document.getElementById('company-address').value.trim(),
                 payday: parseInt(document.getElementById('company-payday').value) || null,
+                hourlyWage: parseInt(document.getElementById('company-hourly-wage').value) || 0,
                 memo: document.getElementById('company-memo').value.trim(),
-                workType: document.getElementById('company-work-type').value,
+                workType: workType,
+                hasDay: hasDay,
+                hasNight: hasNight,
                 lunchTime: parseInt(document.getElementById('company-lunch-time').value) || 0,
                 startTimeDay: document.getElementById('company-start-time-day').value,
                 endTimeDay: document.getElementById('company-end-time-day').value,
                 startTimeNight: document.getElementById('company-start-time-night').value,
-                endTimeNight: document.getElementById('company-end-time-night').value
+                endTimeNight: document.getElementById('company-end-time-night').value,
+                customShifts: [...pendingCustomShifts]
             });
+            pendingCustomShifts = [];
+            document.getElementById('company-custom-shifts').innerHTML = '';
             saveData();
-            ['company-name','company-contact-name','company-contact-phone','company-email','company-address','company-payday','company-memo'].forEach(id => document.getElementById(id).value = '');
+            ['company-name','company-contact-name','company-contact-phone','company-email','company-address','company-payday','company-hourly-wage','company-memo'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('company-has-day').checked = true;
+            document.getElementById('company-has-night').checked = true;
             toast('업체가 추가되었습니다.');
         }
 
@@ -1278,17 +1425,14 @@
             systemData.companies.forEach(c => {
                 const dayH = shiftHoursForCompany(c, 'day').toFixed(1);
                 const nightH = shiftHoursForCompany(c, 'night').toFixed(1);
-                let timeDesc = '';
-                if (c.workType === 'day') timeDesc = `주간 ${c.startTimeDay}~${c.endTimeDay} (${dayH}h)`;
-                else if (c.workType === 'night') timeDesc = `야간 ${c.startTimeNight}~${c.endTimeNight} (${nightH}h)`;
-                else timeDesc = `주간 ${c.startTimeDay}~${c.endTimeDay} (${dayH}h)<br>야간 ${c.startTimeNight}~${c.endTimeNight} (${nightH}h)`;
+                let timeDesc = `주간 ${c.startTimeDay||'09:00'}~${c.endTimeDay||'18:00'} (${dayH}h)<br>야간 ${c.startTimeNight||'18:00'}~${c.endTimeNight||'09:00'} (${nightH}h)`;
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${escapeHtml(c.name)}</td>
                     <td>${escapeHtml(c.contactName) || '-'}</td>
                     <td>${escapeHtml(c.contactPhone) || '-'}</td>
                     <td>${c.payday ? '매월 ' + c.payday + '일' : '-'}</td>
-                    <td style="font-size:11px;"><strong>${workTypeLabel(c.workType)}</strong> · 휴게 ${c.lunchTime}분<br>${timeDesc}</td>
+                    <td style="font-size:11px;"><strong>${escapeHtml(c.workType || '-')}</strong> · 휴게 ${c.lunchTime}분<br>${timeDesc}${(c.customShifts && c.customShifts.length) ? '<br><span style="color:#4a90e2;">+추가: ' + c.customShifts.map(s => escapeHtml(s.name)).join(', ') + '</span>' : ''}</td>
                     <td>${c.memo ? '<div class="memo-box">' + escapeHtml(c.memo) + '</div>' : '-'}</td>`;
                 const actionTd = document.createElement('td');
                 actionTd.style.whiteSpace = 'nowrap';
@@ -1368,29 +1512,52 @@
             const emp = systemData.employees.find(e => e.id === empId);
             const box = document.getElementById('company-info-display');
             const shiftSelect = document.getElementById('attendance-shift');
-            if (!emp) { box.innerHTML = ''; return; }
+            if (!emp) { box.innerHTML = ''; resetShiftOptions(); return; }
             const c = systemData.companies.find(x => x.id == emp.company);
-            if (!c) { box.innerHTML = ''; return; }
-            if (c.workType === 'night') shiftSelect.value = 'night';
-            else shiftSelect.value = 'day';
+            if (!c) { box.innerHTML = ''; resetShiftOptions(); return; }
+            
+            // 근무형태 드롭다운 재구성 (기본 + 업체 커스텀)
+            const baseShifts = [
+                {value:'근무', label:'근무'},
+                {value:'연장', label:'연장'},
+                {value:'야간', label:'야간'},
+                {value:'심야', label:'심야'},
+                {value:'특근', label:'특근'},
+                {value:'특잔', label:'특잔'},
+                {value:'주휴', label:'주휴'},
+            ];
+            let options = baseShifts.map(s => `<option value="${s.value}">${s.label}</option>`).join('');
+            if (c.customShifts && c.customShifts.length) {
+                options += '<option disabled>── 업체 추가 ──</option>';
+                options += c.customShifts.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('');
+            }
+            shiftSelect.innerHTML = options;
+
             const dayH = shiftHoursForCompany(c, 'day').toFixed(1);
             const nightH = shiftHoursForCompany(c, 'night').toFixed(1);
-            let lines = `⏱️ <strong>${workTypeLabel(c.workType)}</strong> · 🍽️ 휴게 <strong>${c.lunchTime}분</strong><br>`;
-            if (c.workType !== 'night') lines += `☀️ 주간 ${c.startTimeDay}~${c.endTimeDay} → 기본 <strong>${dayH}시간</strong><br>`;
-            if (c.workType !== 'day') lines += `🌙 야간 ${c.startTimeNight}~${c.endTimeNight} → 기본 <strong>${nightH}시간</strong>`;
+            let lines = `<strong>${escapeHtml(c.workType || '-')}</strong> · 휴게 <strong>${c.lunchTime}분</strong><br>`;
+            lines += `주간 ${c.startTimeDay||'09:00'}~${c.endTimeDay||'18:00'} → <strong>${dayH}시간</strong><br>`;
+            lines += `야간 ${c.startTimeNight||'18:00'}~${c.endTimeNight||'09:00'} → <strong>${nightH}시간</strong>`;
+            if (c.customShifts && c.customShifts.length) {
+                lines += `<br>📋 추가 근무형태: ${c.customShifts.map(s => `<strong>${escapeHtml(s.name)}</strong>`).join(', ')}`;
+            }
             box.innerHTML = `<div class="work-time-box"><strong>🏢 ${escapeHtml(c.name)}</strong><br>${lines}</div>`;
         }
 
+        function resetShiftOptions() {
+            document.getElementById('attendance-shift').innerHTML = `
+                <option value="근무">근무</option>
+                <option value="연장">연장</option>
+                <option value="야간">야간</option>
+                <option value="심야">심야</option>
+                <option value="특근">특근</option>
+                <option value="특잔">특잔</option>
+                <option value="주휴">주휴</option>`;
+        }
+
         function updateOvertimeDefaultValue() {
-            const shift = document.getElementById('attendance-shift').value;
-            const input = document.getElementById('attendance-overtime');
-            
-            // 근무형태에 따라 기본값 설정
-            if (shift === '근무' || shift === '야간' || shift === '특근' || shift === '특잔') {
-                input.value = '8';
-            } else if (shift === '연장' || shift === '주휴') {
-                input.value = '0';
-            }
+            // 근무형태 변경 시 시간 입력란 초기화 (직접 입력 방식)
+            document.getElementById('attendance-overtime').value = '0';
         }
 
         function addAttendance() {
@@ -1469,29 +1636,47 @@
                 tr.appendChild(actionTd);
                 tbody.appendChild(tr);
             });
+            
+            // 미리보기 필터 드롭다운 업데이트
+            const previewFilter = document.getElementById('preview-employee-filter');
+            const currentValue = previewFilter.value;
+            previewFilter.innerHTML = '<option value="">모든 근무자</option>';
+            const empInMonth = new Set(list.map(a => a.employeeId));
+            systemData.employees.filter(e => e.status === 'active' || empInMonth.has(e.id)).forEach(emp => {
+                previewFilter.innerHTML += `<option value="${emp.id}">${escapeHtml(emp.name)}</option>`;
+            });
+            previewFilter.value = currentValue;
+            
             renderAttendancePreview(month);
         }
 
         function renderAttendancePreview(month) {
             const previewArea = document.getElementById('attendance-preview-area');
-            const records = systemData.attendance.filter(a => a.date.startsWith(month));
+            const filterValue = document.getElementById('preview-employee-filter').value;
+            let records = systemData.attendance.filter(a => a.date.startsWith(month));
+            
+            // 근로자 필터 적용
+            if (filterValue) {
+                records = records.filter(a => a.employeeId == filterValue);
+            }
             
             if (records.length === 0) {
                 previewArea.innerHTML = '<p style="color:#999; padding:12px;">기록이 없습니다.</p>';
                 return;
             }
 
-            // 근로자별 데이터 구성
+            // 근로자별 데이터 구성 (필터 적용)
             const byEmployee = {};
             systemData.employees.forEach(emp => {
-                if (emp.status === 'active') {
+                if (emp.status === 'active' && (!filterValue || emp.id == filterValue)) {
                     byEmployee[emp.id] = {
                         name: emp.name,
-                        근무: Array(30).fill(0),
-                        연장: Array(30).fill(0),
-                        야간: Array(30).fill(0),
-                        특근: Array(30).fill(0),
-                        특잔: Array(30).fill(0)
+                        근무: Array(31).fill(0),
+                        연장: Array(31).fill(0),
+                        야간: Array(31).fill(0),
+                        심야: Array(31).fill(0),
+                        특근: Array(31).fill(0),
+                        특잔: Array(31).fill(0)
                     };
                 }
             });
@@ -1499,12 +1684,11 @@
             records.forEach(rec => {
                 if (byEmployee[rec.employeeId]) {
                     const day = parseInt(rec.date.split('-')[2]) - 1;
-                    if (day >= 0 && day < 30) {
-                        // shift: '근무', '연장', '야간', '특근', '특잔'
+                    if (day >= 0 && day < 31) {
                         const shiftType = rec.shift;
                         const hours = rec.overtime || 0;
                         if (shiftType && byEmployee[rec.employeeId][shiftType] !== undefined) {
-                            byEmployee[rec.employeeId][shiftType][day] = hours;
+                            byEmployee[rec.employeeId][shiftType][day] += hours; // += 로 중복 날짜 누적
                         }
                     }
                 }
@@ -1512,28 +1696,32 @@
 
             // HTML 테이블 생성
             const [year, monthNum] = month.split('-');
+            // 해당 월의 실제 일수 계산
+            const daysInMonth = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
             let html = `<table style="font-size:11px; border-collapse:collapse; width:100%; background:white; border:1px solid #e0e0e0;">
                 <thead>
                 <tr style="background:#f5f5f5;">
                     <th style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">${year}년 ${parseInt(monthNum)}월</th>
                     <th style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">근무형태</th>`;
             
-            for (let i = 1; i <= 30; i++) {
+            for (let i = 1; i <= daysInMonth; i++) {
                 const dateStr = `${year}-${monthNum.padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
                 const weekday = getWeekday(dateStr);
-                html += `<th style="border:1px solid #ddd; padding:4px 2px; text-align:center; font-weight:600; font-size:10px;">${i}<br>${weekday}</th>`;
+                const isWeekend = ['토','일'].includes(weekday);
+                html += `<th style="border:1px solid #ddd; padding:4px 2px; text-align:center; font-weight:600; font-size:10px; ${isWeekend ? 'color:#dc2626;' : ''}">${i}<br>${weekday}</th>`;
             }
             html += `<th style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">소계</th></tr></thead><tbody>`;
 
             Object.values(byEmployee).forEach((emp) => {
-                ['근무', '연장', '야간', '특근', '특잔', '조퇴'].forEach(shift => {
+                ['근무', '연장', '야간', '심야', '특근', '특잔'].forEach(shift => {
                     const shiftData = emp[shift];
                     let total = 0;
+                    for (let i = 0; i < daysInMonth; i++) total += shiftData[i] || 0;
+                    if (total === 0) return; // 데이터 없는 행은 생략
                     html += `<tr><td style="border:1px solid #ddd; padding:6px; text-align:center;">${emp.name}</td>
                             <td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">${shift}</td>`;
-                    for (let i = 0; i < 30; i++) {
+                    for (let i = 0; i < daysInMonth; i++) {
                         const val = shiftData[i] || 0;
-                        total += val;
                         const bgColor = val > 0 ? '#fffbea' : 'transparent';
                         html += `<td style="border:1px solid #ddd; padding:4px 2px; text-align:center; background:${bgColor};">${val > 0 ? val : '-'}</td>`;
                     }
@@ -1542,18 +1730,18 @@
 
                 // 합계 행
                 let grandTotal = 0;
-                html += `<tr style="background:#f9f9f9;"><td style="border:1px solid #ddd; padding:6px; text-align:center;">${emp.name}</td>
+                html += `<tr style="background:#e8f4e8;"><td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">${emp.name}</td>
                         <td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600;">합계</td>`;
-                for (let day = 0; day < 30; day++) {
+                for (let day = 0; day < daysInMonth; day++) {
                     let dayTotal = 0;
-                    ['근무', '연장', '야간', '특근', '특잔', '조퇴'].forEach(shift => {
+                    ['근무', '연장', '야간', '심야', '특근', '특잔'].forEach(shift => {
                         dayTotal += emp[shift][day] || 0;
                     });
                     html += `<td style="border:1px solid #ddd; padding:4px 2px; text-align:center; font-weight:600;">${dayTotal > 0 ? dayTotal : '-'}</td>`;
                     grandTotal += dayTotal;
                 }
-                html += `<td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:600; color:#4a90e2;">${grandTotal}</td></tr>`;
-                html += '<tr style="height:8px;"><td colspan="33"></td></tr>';
+                html += `<td style="border:1px solid #ddd; padding:6px; text-align:center; font-weight:700; color:#2a7a2a;">${grandTotal}</td></tr>`;
+                html += `<tr style="height:8px;"><td colspan="${daysInMonth + 2}"></td></tr>`;
             });
 
             html += '</tbody></table>';
@@ -1657,51 +1845,59 @@
             const s = systemData.settings;
             const company = systemData.companies.find(c => c.id == emp.company);
             const records = systemData.attendance.filter(a => a.employeeId === emp.id && a.date.startsWith(month));
-            let regularHours = 0, overtimeHours = 0, nightHours = 0, specialHours = 0, specialOvertimeHours = 0, weeklyRestCount = 0, workDays = 0;
+            let regularHours = 0, overtimeHours = 0, nightHours = 0, midnightHours = 0, specialHours = 0, specialOvertimeHours = 0, weeklyRestCount = 0, workDays = 0;
+            let customPay = 0; // 업체 커스텀 근무형태 급여 합산
+            const workDates = new Set(); // 근무 날짜 추적
             
             records.forEach(att => {
-                // shift 값이 한국어 ('근무', '연장', '야간', '특근', '특잔', '주휴')
-                const hours = att.overtime || 0; // overtime 필드에 시간이 저장됨
+                const hours = att.overtime || 0;
+                if (att.shift === '주휴') { weeklyRestCount++; return; }
                 
-                if (att.shift === '주휴') { 
-                    weeklyRestCount++; 
-                    return; 
+                // 근무한 날짜 기록 (연장은 별도 처리)
+                if (att.shift !== '연장') {
+                    workDates.add(att.date);
                 }
-                if (att.shift === '근무') {
-                    regularHours += hours;
-                    workDays++;
-                } else if (att.shift === '연장') {
-                    overtimeHours += hours;
-                } else if (att.shift === '야간') {
-                    nightHours += hours;
-                    workDays++;
-                } else if (att.shift === '특근') {
-                    specialHours += hours;
-                    workDays++;
-                } else if (att.shift === '특잔') {
-                    specialOvertimeHours += hours;
-                    workDays++;
+                
+                if (att.shift === '근무') { regularHours += hours; }
+                else if (att.shift === '연장') { overtimeHours += hours; }
+                else if (att.shift === '야간') { nightHours += hours; }
+                else if (att.shift === '심야') { midnightHours += hours; }
+                else if (att.shift === '특근') { specialHours += hours; }
+                else if (att.shift === '특잔') { specialOvertimeHours += hours; }
+                else {
+                    // 업체 커스텀 근무형태 처리
+                    const custom = company && company.customShifts && company.customShifts.find(cs => cs.name === att.shift);
+                    if (custom) {
+                        customPay += Math.round(hours * emp.hourlyWage); // 추가 근무형태는 기본 시급으로 계산
+                    } else {
+                        // 알 수 없는 근무형태는 기본 시급으로
+                        regularHours += hours;
+                    }
                 }
             });
+            
+            workDays = workDates.size; // 실제 근무 날짜 수
             
             const w = emp.hourlyWage;
             const baseSalary = Math.round(regularHours * w);
             const overtimePay = Math.round(overtimeHours * w * s.overtimeMultiplier);
-            const nightPay = Math.round(nightHours * w * 0.5); // 야간수당 0.5배
+            const nightBasePay = Math.round(nightHours * w);
+            const midnightAdditionalPay = Math.round(midnightHours * w * s.midnightRate); // 추가 임금만
             const specialPay = Math.round(specialHours * w * s.specialMultiplier);
-            const specialOvertimePay = Math.round(specialOvertimeHours * w * 2.0); // 특잔은 2.0배
+            const specialOvertimePay = Math.round(specialOvertimeHours * w * 2.0);
             const weeklyRestPay = Math.round(weeklyRestCount * w * s.weeklyRestMultiplier);
             const allowances = systemData.allowances.filter(a => a.employeeId === emp.id && a.month === month);
             const allowanceTotal = allowances.reduce((sum, a) => sum + a.amount, 0);
-            const gross = baseSalary + overtimePay + nightPay + specialPay + specialOvertimePay + weeklyRestPay + allowanceTotal;
+            const gross = baseSalary + overtimePay + nightBasePay + midnightAdditionalPay + specialPay + specialOvertimePay + weeklyRestPay + customPay + allowanceTotal;
             const deductions = computeDeductions(gross, emp.insurance || 'four');
             
             return {
                 employeeId: emp.id, employeeName: emp.name, company: emp.company,
                 insurance: emp.insurance || 'four',
                 bankAccount: emp.bankAccount || '', residentId: emp.residentId || '',
-                hourlyWage: w, workDays, regularHours, overtimeHours, nightHours, specialHours, specialOvertimeHours, weeklyRestCount,
-                baseSalary, overtimePay, nightPay, specialPay, specialOvertimePay, weeklyRestPay,
+                hourlyWage: w, workDays, regularHours, overtimeHours, nightHours, midnightHours, specialHours, specialOvertimeHours, weeklyRestCount,
+                baseSalary, overtimePay, nightBasePay, specialPay, specialOvertimePay, weeklyRestPay, customPay,
+                midnightPay: midnightAdditionalPay,
                 allowances, allowanceTotal,
                 gross, deductionItems: deductions.items, deductionTotal: deductions.total,
                 netSalary: gross - deductions.total
@@ -1730,7 +1926,7 @@
                 (!companyFilter || p.company == companyFilter)
             );
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#999;">계산된 급여가 없습니다. [급여 계산]을 눌러주세요.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#999;">계산된 급여가 없습니다. [급여 계산]을 눌러주세요.</td></tr>';
                 return;
             }
             list.forEach(p => {
@@ -1743,7 +1939,7 @@
                     <td>${p.workDays}일</td>
                     <td>${p.baseSalary.toLocaleString()}</td>
                     <td>${p.overtimePay.toLocaleString()}</td>
-                    <td>${p.nightPay.toLocaleString()}</td>
+                    <td>${p.midnightPay.toLocaleString()}</td>
                     <td>${p.specialPay.toLocaleString()}</td>
                     <td>${p.specialOvertimePay.toLocaleString()}</td>
                     <td>${p.weeklyRestPay.toLocaleString()}</td>
@@ -1771,10 +1967,11 @@
                     <div style="display:flex; justify-content:space-between;"><span>시급 / 근무일수</span><span>${p.hourlyWage.toLocaleString()}원 / ${p.workDays}일</span></div>
                     <div style="display:flex; justify-content:space-between;"><span>기본급 (${p.regularHours.toFixed(1)}h)</span><span>${p.baseSalary.toLocaleString()}원</span></div>
                     <div style="display:flex; justify-content:space-between;"><span>연장수당 (${p.overtimeHours.toFixed(1)}h × ${s.overtimeMultiplier})</span><span>${p.overtimePay.toLocaleString()}원</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span>야간수당 (${p.nightHours.toFixed(1)}h × 0.5)</span><span>${p.nightPay.toLocaleString()}원</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>심야추가임금 (${p.midnightHours.toFixed(1)}h × 시급×${(systemData.settings.midnightRate || 0.5).toFixed(1)})</span><span>${p.midnightPay.toLocaleString()}원</span></div>
                     <div style="display:flex; justify-content:space-between;"><span>특근수당 (${p.specialHours.toFixed(1)}h × ${s.specialMultiplier})</span><span>${p.specialPay.toLocaleString()}원</span></div>
                     <div style="display:flex; justify-content:space-between;"><span>특잔수당 (${p.specialOvertimeHours.toFixed(1)}h × 2.0)</span><span>${p.specialOvertimePay.toLocaleString()}원</span></div>
                     <div style="display:flex; justify-content:space-between;"><span>주휴수당 (${p.weeklyRestCount}회)</span><span>${p.weeklyRestPay.toLocaleString()}원</span></div>
+                    ${p.customPay > 0 ? `<div style="display:flex; justify-content:space-between;"><span>추가근무형태 수당</span><span>${p.customPay.toLocaleString()}원</span></div>` : ''}
                     ${allowanceRows}
                     <div style="display:flex; justify-content:space-between; border-top:2px solid #333; margin-top:8px; padding-top:8px; font-weight:bold; font-size:15px;">
                         <span>월예상급여</span><span>${p.gross.toLocaleString()}원</span>
@@ -1800,32 +1997,34 @@
             
             if (records.length === 0) { toast('해당 월의 출퇴근 기록이 없습니다.', 'error'); return; }
 
+            const [year, monthNum] = month.split('-');
+            const daysInMonth = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+
             // 근로자별 데이터 구성
             const byEmployee = {};
             systemData.employees.forEach(emp => {
                 if (emp.status === 'active') {
                     byEmployee[emp.id] = {
                         name: emp.name,
-                        근무: Array(30).fill(0),
-                        연장: Array(30).fill(0),
-                        야간: Array(30).fill(0),
-                        특근: Array(30).fill(0),
-                        특잔: Array(30).fill(0),
-                        조퇴: Array(30).fill(0)
+                        근무: Array(daysInMonth).fill(0),
+                        연장: Array(daysInMonth).fill(0),
+                        야간: Array(daysInMonth).fill(0),
+                        심야: Array(daysInMonth).fill(0),
+                        특근: Array(daysInMonth).fill(0),
+                        특잔: Array(daysInMonth).fill(0)
                     };
                 }
             });
 
-            // 출퇴근 기록 입력
+            // 출퇴근 기록 입력 (같은 날 중복 누적)
             records.forEach(rec => {
                 if (byEmployee[rec.employeeId]) {
                     const day = parseInt(rec.date.split('-')[2]) - 1;
-                    if (day >= 0 && day < 30) {
-                        // shift: '근무', '연장', '야간', '특근', '특잔', '조퇴'
+                    if (day >= 0 && day < daysInMonth) {
                         const shiftType = rec.shift;
                         const hours = rec.overtime || 0;
                         if (shiftType && byEmployee[rec.employeeId][shiftType] !== undefined) {
-                            byEmployee[rec.employeeId][shiftType][day] = hours;
+                            byEmployee[rec.employeeId][shiftType][day] += hours;
                         }
                     }
                 }
@@ -1833,63 +2032,55 @@
 
             // 엑셀 파일 생성
             const wb = XLSX.utils.book_new();
-            const [year, monthNum] = month.split('-');
             const monthTitle = `${year}년 ${parseInt(monthNum)}월 출퇴근 기록`;
             
             Object.values(byEmployee).forEach((emp) => {
                 const sheetData = [];
                 
-                // 제목 행
                 sheetData.push([monthTitle]);
                 sheetData.push([]);
                 
-                // 날짜 헤더 (1~30일)
                 const dateHeader = ['이름', '근무형태'];
-                for (let i = 1; i <= 30; i++) {
-                    dateHeader.push(i.toString());
-                }
+                for (let i = 1; i <= daysInMonth; i++) dateHeader.push(i.toString());
                 dateHeader.push('소계');
                 sheetData.push(dateHeader);
                 
-                // 요일 헤더
                 const weekdayHeader = ['', ''];
-                for (let i = 1; i <= 30; i++) {
+                for (let i = 1; i <= daysInMonth; i++) {
                     const dateStr = `${year}-${monthNum.padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
                     weekdayHeader.push(getWeekday(dateStr));
                 }
                 weekdayHeader.push('');
                 sheetData.push(weekdayHeader);
                 
-                // 근무형태별 행
-                ['근무', '연장', '야간', '특근', '특잔', '조퇴'].forEach(shift => {
+                ['근무', '연장', '야간', '심야', '특근', '특잔'].forEach(shift => {
                     const row = [emp.name, shift];
                     const shiftData = emp[shift];
                     let total = 0;
-                    for (let i = 0; i < 30; i++) {
+                    for (let i = 0; i < daysInMonth; i++) {
                         const val = shiftData[i] || 0;
-                        row.push(val);
+                        row.push(val > 0 ? val : '');
                         total += val;
                     }
                     row.push(total);
                     sheetData.push(row);
                 });
                 
-                // 합계 행
                 const totalRow = [emp.name, '합계'];
                 let grandTotal = 0;
-                for (let day = 0; day < 30; day++) {
+                for (let day = 0; day < daysInMonth; day++) {
                     let dayTotal = 0;
-                    ['근무', '연장', '야간', '특근', '특잔', '조퇴'].forEach(shift => {
+                    ['근무', '연장', '야간', '심야', '특근', '특잔'].forEach(shift => {
                         dayTotal += emp[shift][day] || 0;
                     });
-                    totalRow.push(dayTotal);
+                    totalRow.push(dayTotal > 0 ? dayTotal : '');
                     grandTotal += dayTotal;
                 }
                 totalRow.push(grandTotal);
                 sheetData.push(totalRow);
 
                 const ws = XLSX.utils.aoa_to_sheet(sheetData);
-                ws['!cols'] = [{ wch: 12 }, { wch: 8 }, ...Array(30).fill({ wch: 5 }), { wch: 8 }];
+                ws['!cols'] = [{ wch: 12 }, { wch: 8 }, ...Array(daysInMonth).fill({ wch: 5 }), { wch: 8 }];
                 XLSX.utils.book_append_sheet(wb, ws, emp.name.slice(0, 10));
             });
 
@@ -1903,21 +2094,24 @@
             document.getElementById('stat-applicant').textContent = apps.filter(a => a.status === 'applicant').length;
             document.getElementById('stat-pending').textContent = apps.filter(a => a.status === 'pending').length;
             document.getElementById('stat-employees').textContent = systemData.employees.filter(e => e.status === 'active').length;
-            document.getElementById('stat-resigned').textContent = systemData.employees.filter(e => e.status === 'resigned').length;
-            document.getElementById('stat-companies').textContent = systemData.companies.length;
-
             const currentMonth = new Date().toISOString().slice(0, 7);
+            const currentMonthResigned = systemData.employees.filter(e => 
+                e.status === 'resigned' && e.resignDate && e.resignDate.startsWith(currentMonth)
+            ).length;
+            document.getElementById('stat-resigned').textContent = currentMonthResigned;
+            document.getElementById('stat-companies').textContent = systemData.companies.length;
+            
             const savedMonth = currentPayrollMonth;
             currentPayrollMonth = currentMonth;
-            let totalNet = 0;
+            let totalGross = 0;
             const perCompany = {};
             systemData.employees.filter(e => e.status === 'active').forEach(emp => {
                 const p = computePayrollFor(emp, currentMonth);
-                totalNet += p.netSalary;
-                perCompany[emp.company] = (perCompany[emp.company] || 0) + p.netSalary;
+                totalGross += p.gross;
+                perCompany[emp.company] = (perCompany[emp.company] || 0) + p.gross;
             });
             currentPayrollMonth = savedMonth;
-            document.getElementById('stat-payroll').textContent = totalNet.toLocaleString() + '원';
+            document.getElementById('stat-payroll').textContent = totalGross.toLocaleString() + '원';
 
             const tbody = document.getElementById('company-stats-body');
             tbody.innerHTML = '';
@@ -1929,7 +2123,7 @@
                 const count = systemData.employees.filter(e => e.company == c.id && e.status === 'active').length;
                 const pay = perCompany[c.id] || 0;
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${escapeHtml(c.name)}</td><td>${workTypeLabel(c.workType)}</td><td>${c.payday ? '매월 ' + c.payday + '일' : '-'}</td><td>${count}명</td><td>${pay.toLocaleString()}원</td>`;
+                tr.innerHTML = `<td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.workType || '-')}</td><td>${c.payday ? '매월 ' + c.payday + '일' : '-'}</td><td>${count}명</td><td>${pay.toLocaleString()}원</td>`;
                 tbody.appendChild(tr);
             });
         }
