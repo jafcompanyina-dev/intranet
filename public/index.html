@@ -1874,14 +1874,17 @@ function loadAttendanceByMonth() {
             document.getElementById('editModalBody').innerHTML = `
                 <div class="form-group"><label>날짜</label><input type="date" id="edit-t-date" value="${att.date}"></div>
                 <div class="form-group"><label>근무 형태</label>
-                    <select id="edit-t-shift">
-                        <option value="day" ${att.shift === 'day' ? 'selected' : ''}>주간 근무</option>
-                        <option value="night" ${att.shift === 'night' ? 'selected' : ''}>야간 근무</option>
-                        <option value="special" ${att.shift === 'special' ? 'selected' : ''}>특근</option>
-                        <option value="rest" ${att.shift === 'rest' ? 'selected' : ''}>주휴</option>
+                                        <select id="edit-t-shift">
+                        <option value="근무" ${att.shift === '근무' ? 'selected' : ''}>근무</option>
+                        <option value="연장" ${att.shift === '연장' ? 'selected' : ''}>연장</option>
+                        <option value="야간" ${att.shift === '야간' ? 'selected' : ''}>야간</option>
+                        <option value="심야" ${att.shift === '심야' ? 'selected' : ''}>심야</option>
+                        <option value="특근" ${att.shift === '특근' ? 'selected' : ''}>특근</option>
+                        <option value="특잔" ${att.shift === '특잔' ? 'selected' : ''}>특잔</option>
+                        <option value="주휴" ${att.shift === '주휴' ? 'selected' : ''}>주휴</option>
                     </select>
-                </div>
-                <div class="form-group"><label>연장근무 (시간)</label><input type="number" id="edit-t-overtime" value="${att.overtime || 0}" min="0" step="0.5"></div>
+</div>
+                <div class="form-group"><label>근무시간</label><input type="number" id="edit-t-overtime" value="${att.overtime || 0}" min="0" step="0.5"></div>
                 <div class="form-group"><label>비고</label><input type="text" id="edit-t-note" value="${escapeHtml(att.note)}"></div>
                 <button class="btn btn-primary" id="edit-t-save">저장</button>
                 <button class="btn btn-secondary" onclick="closeModal('editModal')">취소</button>
