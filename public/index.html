@@ -414,6 +414,12 @@
                     <h2>⏱️ 출퇴근 관리</h2>
                     <div class="info-box">💡 근무형태 선택 시 업체 설정 시간이 자동 적용되고, 연장근무는 추가 시간만 입력합니다. 기록은 명세서 엑셀에 자동 반영됩니다.</div>
                     <div class="form-section">
+                        <h3 style="margin-top:0;">🔗 출퇴근 앱에서 가져오기</h3>
+                        <div class="info-box">💡 출퇴근 앱(근무자 관리 → 근무자 선택 → JSON 다운로드)에서 받은 파일을 업로드하면 해당 근로자의 출퇴근 기록이 자동으로 등록됩니다. 업체별 기준 근무시간을 초과한 시간은 자동으로 "연장"으로 반영되며, 특근·주휴는 반영되지 않으니 별도로 입력해주세요.</div>
+                        <input type="file" id="attendance-app-file" accept=".json" style="display:none;" onchange="handleAttendanceAppUpload(this)">
+                        <button class="btn btn-secondary" onclick="document.getElementById('attendance-app-file').click()">📤 출퇴근 앱 JSON 업로드</button>
+                    </div>
+                    <div class="form-section">
                         <h3 style="margin-top:0;">출퇴근 기록</h3>
                         <div class="form-row">
                             <div class="form-group"><label>근로자 *</label><select id="attendance-employee" onchange="showCompanyWorkTime()"><option value="">근로자 선택</option></select></div>
@@ -1625,7 +1631,94 @@
             });
         }
 
-        function loadAttendanceByMonth() {
+                // ============ 출퇴근 앱 연동 (JSON 업로드로 자동 등록) ============
+        function handleAttendanceAppUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    applyAttendanceAppImport(data);
+                } catch (err) {
+                    toast('파일을 읽을 수 없습니다: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        function applyAttendanceAppImport(data) {
+            const workerName = data && data.worker && data.worker.name;
+            const records = Array.isArray(data && data.records) ? data.records : [];
+            if (!workerName || records.length === 0) {
+                toast('올바른 출퇴근 앱 파일이 아닙니다.', 'error');
+                return;
+            }
+
+            // 이름으로 근로자 매칭 (동명이인이 있으면 업체명으로 한 번 더 좁힘)
+            let candidates = systemData.employees.filter(e => e.name === workerName);
+            if (candidates.length > 1 && data.worker.company) {
+                const comp = systemData.companies.find(c => c.name === data.worker.company);
+                if (comp) {
+                    const narrowed = candidates.filter(e => e.company == comp.id);
+                    if (narrowed.length) candidates = narrowed;
+                }
+            }
+            const emp = candidates[0];
+            if (!emp) {
+                toast(`"${workerName}" 이름과 일치하는 근로자를 찾을 수 없습니다. 근로자 이름을 확인해주세요.`, 'error');
+                return;
+            }
+            const company = systemData.companies.find(c => c.id == emp.company);
+            const showDay = company ? (company.hasDay !== undefined ? company.hasDay : true) : true;
+            const showNight = company ? (company.hasNight !== undefined ? company.hasNight : false) : false;
+            const isNightOnly = showNight && !showDay;
+            const baseHours = company ? shiftHoursForCompany(company, isNightOnly ? 'night' : 'day') : 8;
+            const baseShiftLabel = isNightOnly ? '야간' : '근무';
+            const IMPORT_TAG = '[출퇴근앱 자동등록]';
+
+            let idSeed = Date.now();
+            let applied = 0, skipped = 0;
+
+            records.forEach(rec => {
+                if (!rec.date || !rec.clockInISO || !rec.clockOutISO) { skipped++; return; }
+                const inT = new Date(rec.clockInISO);
+                const outT = new Date(rec.clockOutISO);
+                let minutes = (outT - inT) / 60000;
+                if (minutes <= 0) { skipped++; return; }
+                if (company) minutes -= (company.lunchTime || 0);
+                const workedHours = Math.max(0, minutes / 60);
+
+                // 같은 날짜에 이미 자동 등록된 기록이 있으면 재적용 시 덮어쓰기 (중복 방지)
+                systemData.attendance = systemData.attendance.filter(a =>
+                    !(a.employeeId === emp.id && a.date === rec.date && (a.note || '').includes(IMPORT_TAG))
+                );
+
+                const baseH = Math.round(Math.min(workedHours, baseHours) * 10) / 10;
+                systemData.attendance.push({
+                    id: idSeed++, employeeId: emp.id, date: rec.date,
+                    shift: baseShiftLabel, overtime: baseH,
+                    note: `${IMPORT_TAG} ${rec.clockIn}~${rec.clockOut}`
+                });
+
+                if (workedHours > baseHours) {
+                    const extra = Math.round((workedHours - baseHours) * 10) / 10;
+                    systemData.attendance.push({
+                        id: idSeed++, employeeId: emp.id, date: rec.date,
+                        shift: '연장', overtime: extra,
+                        note: `${IMPORT_TAG} 기준 ${baseHours.toFixed(1)}h 초과분`
+                    });
+                }
+                applied++;
+            });
+
+            saveData();
+            loadAttendanceByMonth();
+            toast(`${emp.name}: ${applied}건 적용됨 (기준 초과 시간은 연장으로 자동 반영, 특근·주휴는 미반영)${skipped ? ` / ${skipped}건 건너뜀` : ''}`);
+        }
+
+function loadAttendanceByMonth() {
             const month = document.getElementById('attendance-month').value;
             const empFilter = document.getElementById('attendance-filter-employee').value;
             const tbody = document.getElementById('attendance-table');
