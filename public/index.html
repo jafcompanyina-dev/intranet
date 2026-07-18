@@ -1444,7 +1444,12 @@
             systemData.companies.forEach(c => {
                 const dayH = shiftHoursForCompany(c, 'day').toFixed(1);
                 const nightH = shiftHoursForCompany(c, 'night').toFixed(1);
-                let timeDesc = `주간 ${c.startTimeDay||'09:00'}~${c.endTimeDay||'18:00'} (${dayH}h)<br>야간 ${c.startTimeNight||'18:00'}~${c.endTimeNight||'09:00'} (${nightH}h)`;
+                const showDay = c.hasDay !== undefined ? c.hasDay : true;
+                const showNight = c.hasNight !== undefined ? c.hasNight : true;
+                let timeLines = [];
+                if (showDay) timeLines.push(`주간 ${c.startTimeDay||'09:00'}~${c.endTimeDay||'18:00'} (${dayH}h)`);
+                if (showNight) timeLines.push(`야간 ${c.startTimeNight||'18:00'}~${c.endTimeNight||'09:00'} (${nightH}h)`);
+                let timeDesc = timeLines.join('<br>') || '-';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${escapeHtml(c.name)}</td>
@@ -1554,9 +1559,11 @@
 
             const dayH = shiftHoursForCompany(c, 'day').toFixed(1);
             const nightH = shiftHoursForCompany(c, 'night').toFixed(1);
-            let lines = `<strong>${escapeHtml(c.workType || '-')}</strong> · 휴게 <strong>${c.lunchTime}분</strong><br>`;
-            lines += `주간 ${c.startTimeDay||'09:00'}~${c.endTimeDay||'18:00'} → <strong>${dayH}시간</strong><br>`;
-            lines += `야간 ${c.startTimeNight||'18:00'}~${c.endTimeNight||'09:00'} → <strong>${nightH}시간</strong>`;
+            const showDay = c.hasDay !== undefined ? c.hasDay : true;
+            const showNight = c.hasNight !== undefined ? c.hasNight : true;
+            let lines = `<strong>${escapeHtml(c.workType || '-')}</strong> · 휴게 <strong>${c.lunchTime}분</strong>`;
+            if (showDay) lines += `<br>주간 ${c.startTimeDay||'09:00'}~${c.endTimeDay||'18:00'} → <strong>${dayH}시간</strong>`;
+            if (showNight) lines += `<br>야간 ${c.startTimeNight||'18:00'}~${c.endTimeNight||'09:00'} → <strong>${nightH}시간</strong>`;
             if (c.customShifts && c.customShifts.length) {
                 lines += `<br>📋 추가 근무형태: ${c.customShifts.map(s => `<strong>${escapeHtml(s.name)}</strong>`).join(', ')}`;
             }
